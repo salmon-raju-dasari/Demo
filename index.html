@@ -1,15 +1,15 @@
 <!doctype html>
 <html lang="en">
-  <head>
-  <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <!-- Content Security Policy: tighten for production. During dev Vite HMR may use eval; adjust if needed. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>supermarket</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="icon" type="image/svg+xml" href="/vite.svg">
+        <!-- Content Security Policy with connect-src for API access -->
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' http://localhost:8000 http://localhost:3000 ws://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://unpkg.com; font-src 'self' data:; img-src 'self' data:;">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>supermarket</title>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/main.jsx"></script>
+    </body>
 </html>
