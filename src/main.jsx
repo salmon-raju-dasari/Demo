@@ -12,6 +12,21 @@ import "primeflex/primeflex.css";
 // App is mounted via RouteConfig
 import { PrimeReactProvider } from "primereact/api";
 import RouteConfig from "./RouteConfig.jsx";
+import { StatusBar, Style } from "@capacitor/status-bar";
+
+// Configure status bar for mobile
+const configureStatusBar = async () => {
+  try {
+    await StatusBar.setStyle({ style: Style.Light });
+    await StatusBar.setBackgroundColor({ color: "#ffffff" });
+    await StatusBar.setOverlaysWebView({ overlay: false });
+  } catch {
+    // StatusBar is not available on web
+    console.log("StatusBar plugin not available");
+  }
+};
+
+configureStatusBar();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

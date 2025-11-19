@@ -1,0 +1,17 @@
+.p-dropdown .p-dropdown-label.p-placeholder {
+    padding: 5px !important;
+}
+
+.p-dropdown {
+    flex-wrap: wrap;
+}
+
+/* .p-datepicker {
+    max-width: 400px !important;
+    width: unset !important;
+    min-width: unset !important;
+} */
+
+.p-inputtext {
+    padding: 5px !important;
+}

@@ -1,9 +1,12 @@
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Unauthorized } from "./components/Unauthorized";
+import { NotFound } from "./components/NotFound";
+import { MainLayout } from "./components/Layout/MainLayout";
 import Login from "./Login/Login";
 import Dashboard from "./components/dashboard";
 import Profile from "./components/Profile";
+import AddProducts from "./components/AddProducts";
 // Import your other components
 
 const RouteConfig = () => {
@@ -13,25 +16,85 @@ const RouteConfig = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Protected route without role restriction */}
+      {/* Protected routes with MainLayout */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute requiredRoles={["user"]}>
-            <Dashboard />
+          <ProtectedRoute requiredRoles={["admin", "user"]}>
+            <MainLayout>
+              <Dashboard />
+            </MainLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* User role protected route */}
       <Route
         path="/profile"
         element={
           <ProtectedRoute requiredRoles={["user", "admin"]}>
-            <Profile />
+            <MainLayout>
+              <Profile />
+            </MainLayout>
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/products/add"
+        element={
+          <ProtectedRoute requiredRoles={["user", "admin"]}>
+            <MainLayout>
+              <AddProducts />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Add more routes as needed */}
+      <Route
+        path="/products"
+        element={
+          <ProtectedRoute requiredRoles={["user", "admin"]}>
+            <MainLayout>
+              <div className="dashboard-card">
+                <h3>All Products</h3>
+                <p>Products list will appear here</p>
+              </div>
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/inventory"
+        element={
+          <ProtectedRoute requiredRoles={["user", "admin"]}>
+            <MainLayout>
+              <div className="dashboard-card">
+                <h3>Inventory</h3>
+                <p>Inventory management will appear here</p>
+              </div>
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <MainLayout>
+              <div className="dashboard-card">
+                <h3>Settings</h3>
+                <p>Settings panel will appear here</p>
+              </div>
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Wildcard route for 404 - must be last */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

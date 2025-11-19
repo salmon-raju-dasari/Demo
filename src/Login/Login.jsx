@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card } from "primereact/card";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
@@ -13,6 +13,20 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const toast = useRef(null);
+  const location = useLocation();
+
+  // If user is already authenticated, redirect them away from the login page
+  useEffect(() => {
+    try {
+      if (authService.isAuthenticated()) {
+        const returnUrl = location.state?.from?.pathname || "/dashboard";
+        navigate(returnUrl, { replace: true });
+      }
+    } catch (error) {
+      console.log(error);
+      // ignore errors
+    }
+  }, [location, navigate]);
 
   const handleLogin = async () => {
     if (!email || !password) {
