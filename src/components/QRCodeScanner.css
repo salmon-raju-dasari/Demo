@@ -1,0 +1,425 @@
+/* QR Code Scanner Styles */
+
+.qr-scanner-dialog {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.qr-scanner-dialog .p-dialog {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.qr-scanner-dialog .p-dialog-content {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.qr-scanner-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem;
+}
+
+/* Scanner Container */
+.qr-reader-container {
+    width: 100%;
+    height: 250px;
+    max-height: 250px;
+    background-color: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    display: block;
+}
+
+#qr-reader {
+    width: 100%;
+    height: 100%;
+    max-height: 250px;
+    position: relative;
+    display: block;
+}
+
+#qr-reader video {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 250px;
+    object-fit: cover;
+    display: block !important;
+    position: relative;
+    z-index: 1;
+}
+
+#qr-reader canvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+}
+
+#qr-reader__dashboard_section {
+    display: none !important;
+}
+
+#qr-reader__dashboard_section_csr {
+    display: none !important;
+}
+
+#qr-reader>div {
+    width: 100%;
+    height: 100%;
+    max-height: 250px;
+}
+
+#qr-reader__scan_region {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 250px;
+}
+
+#qr-reader__scan_region video {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 250px;
+    border: none !important;
+}
+
+/* Torch Button Overlay */
+.torch-button-overlay {
+    transition: all 0.3s ease;
+}
+
+.torch-button-overlay:hover {
+    transform: scale(1.1);
+}
+
+/* Scanning Elements */
+#qr-reader__scanning_region {
+    width: 100%;
+    height: 100%;
+}
+
+#qr-reader__scan_region {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#qr-reader__scan_region video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Error State */
+.qr-error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    background: linear-gradient(135deg, #fee 0%, #fdd 100%);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.qr-error-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.qr-error-message {
+    font-size: 0.95rem;
+    color: #333;
+    margin: 0.5rem 0;
+    font-weight: 500;
+}
+
+.qr-error-hint {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0.5rem 0 0.75rem 0;
+}
+
+/* Loading State */
+.qr-loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
+    border-radius: 8px;
+    gap: 0.75rem;
+    padding: 1.5rem;
+}
+
+.qr-spinner {
+    width: 35px;
+    height: 35px;
+    border: 3px solid #e8e8e8;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Result Section */
+.qr-result-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+    border-radius: 8px;
+}
+
+.qr-scanned-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    background-color: #dbeafe;
+    border: 1px solid #93c5fd;
+    border-radius: 6px;
+    color: #1e40af;
+    font-size: 0.9rem;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.qr-scanned-badge strong {
+    color: #1e3a8a;
+    font-family: "Courier New", monospace;
+}
+
+/* Manual Input Section */
+.qr-manual-input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.qr-input-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.qr-input-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.qr-input-field {
+    flex: 1;
+    min-height: 36px;
+    font-family: "Courier New", monospace;
+    font-size: 0.9rem;
+}
+
+.qr-input-field:disabled {
+    background-color: #e5e7eb;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+/* Dialog Footer */
+.qr-dialog-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 0.5rem;
+}
+
+.qr-footer-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.qr-footer-buttons .p-button {
+    min-height: 38px;
+    font-size: 0.9rem;
+}
+
+/* Help Text */
+.qr-help-text {
+    padding: 0.6rem 0.75rem;
+    background-color: #fef3c7;
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+    color: #92400e;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.qr-help-text small {
+    display: block;
+    line-height: 1.5;
+}
+
+/* Camera Selection Buttons */
+.camera-selection-buttons {
+    margin-bottom: 0.5rem;
+}
+
+.camera-selection-buttons .p-button {
+    white-space: nowrap;
+}
+
+/* Responsive Styles */
+@media (max-width: 640px) {
+    .qr-reader-container {
+        height: 220px;
+        max-height: 220px;
+    }
+
+    #qr-reader,
+    #qr-reader video,
+    #qr-reader>div,
+    #qr-reader__scan_region,
+    #qr-reader__scan_region video {
+        height: 220px;
+        max-height: 220px;
+    }
+
+    .torch-button-overlay {
+        width: 40px !important;
+        height: 40px !important;
+        top: 8px !important;
+        right: 8px !important;
+    }
+
+    .qr-error-container {
+        min-height: 200px;
+        padding: 1rem;
+    }
+
+    .qr-loading-container {
+        min-height: 200px;
+        padding: 1rem;
+    }
+
+    .qr-error-icon {
+        font-size: 2rem;
+    }
+
+    .qr-scanned-badge {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.65rem;
+    }
+
+    .qr-footer-buttons {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .qr-help-text {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.65rem;
+    }
+
+    .qr-scanner-content {
+        gap: 0.5rem;
+        padding: 0.25rem;
+    }
+}
+
+/* PrimeReact Dialog Overrides */
+.qr-scanner-dialog .p-dialog-content {
+    padding: 0.5rem;
+    overflow-y: auto;
+}
+
+.qr-scanner-dialog .p-dialog-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.qr-scanner-dialog .p-dialog-footer {
+    display: none;
+}
+
+/* Torch Button Styling */
+.qr-shaded-region {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.qr-scanning_region_highlight {
+    border: 3px solid #3b82f6;
+    border-radius: 8px;
+}
+
+/* Focus Overlay Styling */
+.qr-focus-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 65%;
+    height: 70%;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.qr-focus-overlay::before,
+.qr-focus-overlay::after {
+    content: "";
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.qr-focus-overlay::before {
+    border-top: 3px solid #3b82f6;
+    border-left: 3px solid #3b82f6;
+    width: 22%;
+    height: 26%;
+    top: 0;
+    left: 0;
+}
+
+.qr-focus-overlay::after {
+    border-bottom: 3px solid #3b82f6;
+    border-right: 3px solid #3b82f6;
+    width: 22%;
+    height: 26%;
+    bottom: 0;
+    right: 0;
+}
+
+/* Dim surroundings slightly so focus area pops */
+.qr-scanner-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.15);
+    z-index: 2;
+}
+
+/* Ensure camera video stays below overlay */
+#qr-reader video {
+    z-index: 1 !important;
+}

@@ -73,7 +73,7 @@ export default function Login() {
 
   return (
     <>
-      <Toast className="w-full" ref={toast} />
+      <Toast ref={toast} />
       <div>
         <Card
           title="Login"

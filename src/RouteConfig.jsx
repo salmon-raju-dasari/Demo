@@ -7,6 +7,7 @@ import Login from "./Login/Login";
 import Dashboard from "./components/dashboard";
 import Profile from "./components/Profile";
 import AddProducts from "./components/AddProducts";
+import Employees from "./components/Employees";
 // Import your other components
 
 const RouteConfig = () => {

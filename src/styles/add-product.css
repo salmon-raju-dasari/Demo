@@ -6,12 +6,44 @@
     flex-wrap: wrap;
 }
 
-/* .p-datepicker {
-    max-width: 400px !important;
-    width: unset !important;
-    min-width: unset !important;
-} */
+
+/* On medium+ screens, ensure calendar/input don't force full width */
+@media (min-width: 768px) {
+    .p-datepicker {
+        max-width: 500px !important;
+        width: unset !important;
+        min-width: unset !important;
+    }
+}
 
 .p-inputtext {
     padding: 5px !important;
+}
+
+/* Quagga Scanner Styles */
+#barcode-scanner {
+    position: relative !important;
+}
+
+#barcode-scanner video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 8px;
+}
+
+#barcode-scanner canvas {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+}
+
+#barcode-scanner__scan_region {
+    position: relative !important;
+}
+
+#barcode-scanner__scan_region video {
+    width: 100% !important;
+    height: 400px !important;
+    object-fit: cover !important;
 }

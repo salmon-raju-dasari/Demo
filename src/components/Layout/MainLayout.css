@@ -214,8 +214,13 @@
         gap: 12px;
     }
 
-    .logout-btn span {
+    .logout-btn .p-button-label {
         display: none;
+    }
+
+    .logout-btn .p-button-icon {
+        margin: 0;
+        line-height: inherit;
     }
 
     .main-content {

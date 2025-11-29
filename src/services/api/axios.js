@@ -2,9 +2,28 @@ import axios from "axios";
 import { Toast } from "primereact/toast";
 import { tokenService } from "../token.service";
 
+// Determine base URL - use HTTP for Capacitor apps to avoid mixed content issues
+const getBaseURL = () => {
+  // Check if running in Capacitor (native mobile app)
+  // Use optional chaining as Capacitor might not be loaded yet
+  const isCapacitor =
+    typeof window !== "undefined" &&
+    (window.Capacitor !== undefined ||
+      window.location.protocol === "capacitor:" ||
+      window.location.protocol === "ionic:");
+
+  if (isCapacitor) {
+    // For Capacitor, always use HTTP (no mixed content restrictions)
+    return "http://192.168.1.2:8000/api";
+  }
+
+  // For web, use environment variable
+  return import.meta.env.VITE_API_BASE_URL;
+};
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: getBaseURL(),
   timeout: import.meta.env.VITE_API_TIMEOUT || 30000,
   headers: {
     "Content-Type": "application/json",
@@ -155,4 +174,6 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export { api };
 export default api;

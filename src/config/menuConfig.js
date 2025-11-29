@@ -48,6 +48,11 @@ export const menuItems = [
     to: "/inventory",
   },
   {
+    label: "Employees",
+    icon: "pi pi-id-card",
+    to: "/employees",
+  },
+  {
     label: "Customers",
     icon: "pi pi-users",
     items: [

@@ -60,3 +60,31 @@ body {
     width: 0;
     padding: 5px;
 }
+
+.p-toast {
+    padding-top: env(safe-area-inset-top) !important;
+    z-index: 9999999 !important;
+    position: fixed !important;
+}
+
+.p-toast-message-content {
+    z-index: 9999999 !important;
+}
+
+/* Ensure toast container is above dialogs */
+.p-component-overlay-enter,
+.p-dialog-mask {
+    z-index: 1100 !important;
+}
+
+.p-dialog {
+    z-index: 1101 !important;
+}
+
+@media (max-width: 576px) {
+    .p-toast {
+        width: 90% !important;
+        left: 20px !important;
+        right: 20px !important;
+    }
+}
