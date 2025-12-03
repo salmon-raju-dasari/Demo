@@ -1,5 +1,4 @@
 import axios from "axios";
-import { Toast } from "primereact/toast";
 import { tokenService } from "../token.service";
 
 // Determine base URL - use HTTP for Capacitor apps to avoid mixed content issues
@@ -55,24 +54,34 @@ api.interceptors.request.use(
     // Check if token will expire soon and refresh if needed
     if (
       tokenService.willTokenExpireSoon() &&
-      !config.url.includes("/refresh")
+      !config.url.includes("/refresh") &&
+      !config.url.includes("/auth")
     ) {
       try {
         const refreshToken = tokenService.getRefreshToken();
         if (refreshToken) {
-          const response = await api.post("/users/refresh", {
+          console.log("Proactively refreshing token...");
+          const response = await api.post("/employees/refresh", {
             refresh_token: refreshToken,
           });
           const { access_token, refresh_token } = response.data;
           tokenService.setTokens(access_token, refresh_token);
+          console.log("Token refreshed successfully");
         }
       } catch (error) {
         console.error("Token refresh failed:", error);
+        // Don't clear tokens here, let the response interceptor handle it
       }
     }
 
     // Add token to request
     const token = tokenService.getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log("Request to:", config.url, "with token");
+    } else {
+      console.log("Request to:", config.url, "without token");
+    }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -111,23 +120,29 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = tokenService.getRefreshToken();
+        console.log("Attempting to refresh token on 401 error...");
         if (!refreshToken) {
+          console.error("No refresh token available");
           throw new Error("No refresh token available");
         }
 
-        const response = await api.post("/users/refresh", {
+        console.log("Calling /employees/refresh endpoint");
+        const response = await api.post("/employees/refresh", {
           refresh_token: refreshToken,
         });
 
         const { access_token, refresh_token } = response.data;
         tokenService.setTokens(access_token, refresh_token);
+        console.log("Token refresh successful on 401");
 
         processQueue(null, access_token);
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
       } catch (refreshError) {
+        console.error("Token refresh failed on 401:", refreshError);
         processQueue(refreshError, null);
         tokenService.clearTokens();
+        console.log("Redirecting to login...");
         window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
@@ -135,42 +150,8 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle other error scenarios
-    if (response) {
-      switch (response.status) {
-        case 403:
-          Toast.show({
-            severity: "error",
-            summary: "Access Denied",
-            detail: "You do not have permission to perform this action",
-            life: 3000,
-          });
-          break;
-        case 404:
-          Toast.show({
-            severity: "error",
-            summary: "Not Found",
-            detail: "The requested resource was not found",
-            life: 3000,
-          });
-          break;
-        default:
-          Toast.show({
-            severity: "error",
-            summary: "Error",
-            detail: response.data?.message || "An unexpected error occurred",
-            life: 3000,
-          });
-      }
-    } else {
-      Toast.show({
-        severity: "error",
-        summary: "Network Error",
-        detail: "Unable to connect to the server",
-        life: 3000,
-      });
-    }
-
+    // Return error to be handled by components
+    // Components will display appropriate toast messages
     return Promise.reject(error);
   }
 );

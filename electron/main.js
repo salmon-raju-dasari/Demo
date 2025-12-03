@@ -17,7 +17,7 @@ const CSP = isDev
       "frame-src https://demo.strich.io https://demo.dynamsoft.com",
       "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net",
       "font-src 'self' data:",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: http://localhost:8000 https://localhost:8000 http://127.0.0.1:8000 https://127.0.0.1:8000 http://192.168.1.2:8000 https://192.168.1.2:8000",
       "media-src 'self' blob:",
     ].join("; ")
   : [

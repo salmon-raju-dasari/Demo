@@ -2,11 +2,10 @@ import api from "./axios";
 import { tokenService } from "../token.service";
 
 export const authService = {
-  login: async ({ email, password, role }) => {
-    const response = await api.post("/users/auth", {
+  login: async ({ email, password }) => {
+    const response = await api.post("/employees/auth", {
       email: email, // your backend expects email
       password,
-      role,
     });
 
     const { access_token, refresh_token } = response.data;
@@ -14,12 +13,17 @@ export const authService = {
     // Store both tokens
     tokenService.setTokens(access_token, refresh_token);
 
-    return { user: { email: email, role } };
+    // Decode token to get user role
+    const payload = JSON.parse(atob(access_token.split(".")[1]));
+    const userRole = payload.role;
+    const empId = payload.sub;
+
+    return { user: { email: email, role: userRole, emp_id: empId } };
   },
 
   refreshToken: async (refreshToken) => {
     try {
-      const response = await api.post("/users/refresh", {
+      const response = await api.post("/employees/refresh", {
         refresh_token: refreshToken,
       });
 
@@ -33,13 +37,13 @@ export const authService = {
     }
   },
   register: async (userData) => {
-    // Your backend expects a specific format
-    const response = await api.post("/users", {
+    // Register as employee
+    const response = await api.post("/employees/register", {
+      name: userData.fullName || userData.name,
       email: userData.email,
-      username: userData.username,
+      phone_number: userData.phoneNumber || "",
       password: userData.password,
-      full_name: userData.fullName || "",
-      role: userData.role || "user",
+      role: userData.role || "employee",
     });
 
     return response.data;
@@ -52,13 +56,14 @@ export const authService = {
     if (!tokenService.isTokenValid()) {
       throw new Error("No valid token");
     }
-    // Decode the token to get user ID, then fetch user details
+    // Decode the token to get employee ID, then fetch employee details
     const token = tokenService.getAccessToken();
     const payload = JSON.parse(atob(token.split(".")[1]));
-    const userId = payload.sub;
+    const empId = payload.sub;
+    const userRole = payload.role;
 
-    const response = await api.get(`/users/${userId}`);
-    return response.data;
+    const response = await api.get(`/employees/${empId}`);
+    return { ...response.data, role: userRole };
   }, // Check if user is authenticated
   isAuthenticated: () => {
     return tokenService.isTokenValid();

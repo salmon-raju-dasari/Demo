@@ -1,0 +1,220 @@
+/* Business Management Styles */
+
+.business-container {
+    padding: 0;
+    max-width: 100%;
+    margin: 0;
+}
+
+.business-header {
+    margin-bottom: 2rem;
+}
+
+.business-header h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.business-header p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 1rem;
+}
+
+.business-form-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.business-form {
+    padding: 0;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-section:last-of-type {
+    border-bottom: none;
+}
+
+.form-section h3 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.25rem;
+    color: #495057;
+    font-weight: 600;
+}
+
+.logo-section {
+    text-align: center;
+}
+
+.logo-upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.logo-preview {
+    margin-bottom: 1rem;
+}
+
+.logo-upload-btn {
+    width: auto;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.form-field.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-field label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.95rem;
+}
+
+.form-field label .required {
+    color: #dc3545;
+    margin-left: 0.25rem;
+}
+
+/* Error styling for invalid inputs */
+.form-field .p-invalid {
+    border-color: #dc3545 !important;
+}
+
+.form-field .p-invalid:focus {
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    border-color: #dc3545 !important;
+}
+
+.form-field .p-error {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.form-field .p-inputtext,
+.form-field .p-dropdown,
+.form-field .p-inputtextarea {
+    width: 100%;
+}
+
+/* Fix dropdown icon alignment */
+.form-field .p-dropdown .p-dropdown-trigger {
+    width: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.form-field .p-dropdown {
+    position: relative;
+}
+
+/* Reduce input padding */
+.form-field .p-inputtext,
+.form-field .p-dropdown .p-dropdown-label {
+    padding: 0.5rem 0.75rem;
+}
+
+.form-field .p-inputtextarea {
+    padding: 0.5rem 0.75rem;
+}
+
+.text-muted {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.form-actions {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.save-btn {
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .business-container {
+        padding: 0;
+    }
+
+    .business-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .form-section {
+        margin-bottom: 1.5rem;
+        padding: 0.5rem;
+    }
+
+    .logo-upload-area {
+        padding: 1.5rem;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .save-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .business-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .business-header p {
+        font-size: 0.9rem;
+    }
+
+    .form-section h3 {
+        font-size: 1.1rem;
+    }
+}

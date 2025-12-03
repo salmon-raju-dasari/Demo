@@ -8,6 +8,8 @@ import Dashboard from "./components/dashboard";
 import Profile from "./components/Profile";
 import AddProducts from "./components/AddProducts";
 import Employees from "./components/Employees";
+import Business from "./components/Business";
+import StoreManagement from "./components/StoreManagement";
 // Import your other components
 
 const RouteConfig = () => {
@@ -21,7 +23,9 @@ const RouteConfig = () => {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute requiredRoles={["admin", "user"]}>
+          <ProtectedRoute
+            requiredRoles={["admin", "owner", "manager", "employee"]}
+          >
             <MainLayout>
               <Dashboard />
             </MainLayout>
@@ -32,7 +36,9 @@ const RouteConfig = () => {
       <Route
         path="/profile"
         element={
-          <ProtectedRoute requiredRoles={["user", "admin"]}>
+          <ProtectedRoute
+            requiredRoles={["admin", "owner", "manager", "employee"]}
+          >
             <MainLayout>
               <Profile />
             </MainLayout>
@@ -43,7 +49,7 @@ const RouteConfig = () => {
       <Route
         path="/products/add"
         element={
-          <ProtectedRoute requiredRoles={["user", "admin"]}>
+          <ProtectedRoute requiredRoles={["admin", "owner", "manager"]}>
             <MainLayout>
               <AddProducts />
             </MainLayout>
@@ -51,11 +57,34 @@ const RouteConfig = () => {
         }
       />
 
+      <Route
+        path="/employees"
+        element={
+          <ProtectedRoute requiredRoles={["admin", "owner", "manager"]}>
+            <MainLayout>
+              <Employees />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/business"
+        element={
+          <ProtectedRoute requiredRoles={["owner"]}>
+            <MainLayout>
+              <Business />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
       {/* Add more routes as needed */}
       <Route
         path="/products"
         element={
-          <ProtectedRoute requiredRoles={["user", "admin"]}>
+          <ProtectedRoute
+            requiredRoles={["admin", "owner", "manager", "cashier", "employee"]}
+          >
             <MainLayout>
               <div className="dashboard-card">
                 <h3>All Products</h3>
@@ -69,7 +98,9 @@ const RouteConfig = () => {
       <Route
         path="/inventory"
         element={
-          <ProtectedRoute requiredRoles={["user", "admin"]}>
+          <ProtectedRoute
+            requiredRoles={["admin", "owner", "manager", "stock_keeper"]}
+          >
             <MainLayout>
               <div className="dashboard-card">
                 <h3>Inventory</h3>
@@ -83,12 +114,23 @@ const RouteConfig = () => {
       <Route
         path="/settings"
         element={
-          <ProtectedRoute requiredRoles={["admin"]}>
+          <ProtectedRoute requiredRoles={["admin", "owner"]}>
             <MainLayout>
               <div className="dashboard-card">
                 <h3>Settings</h3>
                 <p>Settings panel will appear here</p>
               </div>
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/stores"
+        element={
+          <ProtectedRoute requiredRoles={["admin", "owner"]}>
+            <MainLayout>
+              <StoreManagement />
             </MainLayout>
           </ProtectedRoute>
         }

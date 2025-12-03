@@ -96,15 +96,10 @@ export default function Login() {
 
           <div className="flex flex-col sm:flex-row align-items-center gap-3">
             <Button
-              label="Admin"
+              label="Login"
               className="w-full"
               loading={loading}
-              onClick={() => handleLogin("admin")}
-            />
-            <Button
-              label="Employee"
-              className="w-full"
-              onClick={() => handleLogin("employee")}
+              onClick={() => handleLogin()}
             />
           </div>
         </Card>

@@ -53,6 +53,16 @@ export const menuItems = [
     to: "/employees",
   },
   {
+    label: "Business Management",
+    icon: "pi pi-building",
+    to: "/business",
+  },
+  {
+    label: "Store Management",
+    icon: "pi pi-map-marker",
+    to: "/stores",
+  },
+  {
     label: "Customers",
     icon: "pi pi-users",
     items: [
