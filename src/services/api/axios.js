@@ -17,7 +17,7 @@ const getBaseURL = () => {
   }
 
   // For web, use environment variable
-  return import.meta.env.VITE_API_BASE_URL;
+  return import.meta.env.VITE_API_BASE_URL || "http://192.168.1.2:8000/api";
 };
 
 // Create axios instance with default config
@@ -103,6 +103,14 @@ api.interceptors.response.use(
 
     // Handle 401 with token refresh
     if (response?.status === 401 && !originalRequest._retry) {
+      // If this is a login request, don't try to refresh - just pass the error through
+      if (
+        originalRequest.url.includes("/auth") ||
+        originalRequest.url.includes("/login")
+      ) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         try {
           const token = await new Promise((resolve, reject) => {
@@ -143,7 +151,10 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         tokenService.clearTokens();
         console.log("Redirecting to login...");
-        window.location.href = "/login";
+        // Only redirect if we're not already on the login page
+        if (!window.location.pathname.includes("/login")) {
+          window.location.href = "/login";
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

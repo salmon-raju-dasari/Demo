@@ -4,6 +4,9 @@ import { Unauthorized } from "./components/Unauthorized";
 import { NotFound } from "./components/NotFound";
 import { MainLayout } from "./components/Layout/MainLayout";
 import Login from "./Login/Login";
+import OwnerRegistration from "./Register/OwnerRegistration";
+import ForgotUsername from "./Login/ForgotUsername";
+import ForgotPassword from "./Login/ForgotPassword";
 import Dashboard from "./components/dashboard";
 import Profile from "./components/Profile";
 import AddProducts from "./components/AddProducts";
@@ -17,6 +20,9 @@ const RouteConfig = () => {
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/register/owner" element={<OwnerRegistration />} />
+      <Route path="/forgot-username" element={<ForgotUsername />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Protected routes with MainLayout */}

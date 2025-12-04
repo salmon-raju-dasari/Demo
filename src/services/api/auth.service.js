@@ -2,13 +2,22 @@ import api from "./axios";
 import { tokenService } from "../token.service";
 
 export const authService = {
-  login: async ({ email, password }) => {
+  login: async ({ user_id, password }) => {
     const response = await api.post("/employees/auth", {
-      email: email, // your backend expects email
+      user_id: user_id,
       password,
     });
 
+    // Check for error responses (401, 400, etc.)
+    if (response.status !== 200 && response.status !== 201) {
+      throw new Error(response.data?.detail || "Login failed");
+    }
+
     const { access_token, refresh_token } = response.data;
+
+    if (!access_token || !refresh_token) {
+      throw new Error("Invalid response from server");
+    }
 
     // Store both tokens
     tokenService.setTokens(access_token, refresh_token);
@@ -18,7 +27,7 @@ export const authService = {
     const userRole = payload.role;
     const empId = payload.sub;
 
-    return { user: { email: email, role: userRole, emp_id: empId } };
+    return { user: { user_id: user_id, role: userRole, emp_id: empId } };
   },
 
   refreshToken: async (refreshToken) => {

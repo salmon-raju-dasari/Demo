@@ -8,7 +8,7 @@ import { authService } from "../services/api/auth.service";
 import { Password } from "primereact/password";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -29,11 +29,11 @@ export default function Login() {
   }, [location, navigate]);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!userId || !password) {
       toast.current.show({
         severity: "warn",
         summary: "Warning",
-        detail: "Please enter username and password",
+        detail: "Please enter user ID and password",
         life: 3000,
       });
       return;
@@ -42,10 +42,14 @@ export default function Login() {
     try {
       setLoading(true);
       const response = await authService.login({
-        email,
+        user_id: userId,
         password,
       });
       console.log("Login response:", response);
+
+      // Store user_id in localStorage for payment tracking
+      localStorage.setItem("user_id", userId);
+
       // Show success message
       toast.current.show({
         severity: "success",
@@ -63,11 +67,18 @@ export default function Login() {
         severity: "error",
         summary: "Error",
         className: "failed-toast",
-        detail: error.response?.data?.message || "Login failed",
+        detail: error.response?.data?.detail || error.message || "Login failed",
         life: 3000,
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleLogin();
     }
   };
 
@@ -80,16 +91,18 @@ export default function Login() {
           className="sm:max-w-100 w-[90%] m-auto mt-6 p-2 border-round-lg shadow-2"
         >
           <InputText
-            placeholder="Username"
+            placeholder="User ID (e.g., USR1000)"
             className="w-full mb-3"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            onKeyPress={handleKeyPress}
           />
           <Password
             placeholder="Password"
             value={password}
             className="w-full mb-3"
             onChange={(e) => setPassword(e.target.value)}
+            onKeyPress={handleKeyPress}
             feedback={false}
             toggleMask={true}
           />
@@ -100,6 +113,27 @@ export default function Login() {
               className="w-full"
               loading={loading}
               onClick={() => handleLogin()}
+            />
+            <Button
+              label="Owner Registration"
+              className="w-full p-button-secondary"
+              onClick={() => navigate("/register/owner")}
+            />
+          </div>
+
+          <div className="flex flex-column sm:flex-row gap-2 mt-4 justify-content-center">
+            <Button
+              label="Forgot Username?"
+              icon="pi pi-user"
+              className="p-button-link p-button-sm"
+              onClick={() => navigate("/forgot-username")}
+            />
+            <span className="hidden sm:inline text-400">|</span>
+            <Button
+              label="Forgot Password?"
+              icon="pi pi-key"
+              className="p-button-link p-button-sm"
+              onClick={() => navigate("/forgot-password")}
             />
           </div>
         </Card>

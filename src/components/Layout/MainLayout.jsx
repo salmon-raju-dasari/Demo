@@ -5,12 +5,56 @@ import { tokenService } from "../../services/token.service";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
+import PaymentModal from "../PaymentModal";
 import "./MainLayout.css";
 
 export const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const userRole = tokenService.getUserRole();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState("");
+
+  // Check payment status on mount
+  useEffect(() => {
+    const checkPaymentStatus = async () => {
+      const currentUserId = localStorage.getItem("user_id");
+      if (currentUserId) {
+        try {
+          const API_BASE_URL =
+            import.meta.env.VITE_API_BASE_URL || "http://192.168.1.2:8000/api";
+          const response = await fetch(
+            `${API_BASE_URL}/payment/status/${currentUserId}`
+          );
+          const data = await response.json();
+
+          if (data.payment_completed) {
+            localStorage.setItem(`payment_completed_${currentUserId}`, "true");
+            setShowPaymentModal(false);
+          } else {
+            setUserId(currentUserId);
+            setIsOwner(data.is_owner);
+            setPaymentMessage(data.message || "");
+            setShowPaymentModal(true);
+          }
+        } catch (error) {
+          console.error("Error checking payment status:", error);
+          const paymentCompleted = localStorage.getItem(
+            `payment_completed_${currentUserId}`
+          );
+          if (!paymentCompleted || paymentCompleted !== "true") {
+            setUserId(currentUserId);
+            setIsOwner(true);
+            setShowPaymentModal(true);
+          }
+        }
+      }
+    };
+
+    checkPaymentStatus();
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -40,8 +84,21 @@ export const MainLayout = ({ children }) => {
     setSidebarCollapsed(true);
   };
 
+  const handlePaymentSuccess = () => {
+    setShowPaymentModal(false);
+  };
+
   return (
     <div className="main-layout">
+      {/* Global Payment Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          userId={userId}
+          isOwner={isOwner}
+          message={paymentMessage}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
       {/* Overlay when sidebar is expanded */}
       {!sidebarCollapsed && (
         <div className="sidebar-overlay" onClick={closeSidebar}></div>

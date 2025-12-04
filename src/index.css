@@ -81,6 +81,17 @@ body {
     z-index: 1101 !important;
 }
 
+/* Razorpay modal z-index fix - ensure it's above everything */
+.razorpay-container,
+iframe[name^="razorpay"] {
+    z-index: 999999999 !important;
+}
+
+/* Razorpay backdrop */
+.razorpay-container::before {
+    z-index: 999999998 !important;
+}
+
 @media (max-width: 576px) {
     .p-toast {
         width: 90% !important;
