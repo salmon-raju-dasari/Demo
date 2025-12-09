@@ -10,9 +10,9 @@ import { api } from "../services/api/axios";
 
 export default function ForgotUsername() {
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
+  const [businessId, setBusinessId] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const navigate = useNavigate();
   const toast = useRef(null);
@@ -25,91 +25,48 @@ export default function ForgotUsername() {
   }, [navigate]);
 
   const handleSendOTP = async () => {
+    setEmailError("");
+
     if (!email) {
-      toast.current.show({
-        severity: "warn",
-        summary: "Warning",
-        detail: "Please enter your email address",
-        life: 3000,
-      });
+      setEmailError("Email address is required");
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.current.show({
-        severity: "warn",
-        summary: "Warning",
-        detail: "Please enter a valid email address",
-        life: 3000,
-      });
+      setEmailError("Please enter a valid email address");
       return;
     }
 
     try {
       setLoading(true);
-      await api.post("/employees/forgot-username-otp", {
-        email: email,
-      });
+      const requestData = { email: email };
+
+      // Add business_id if provided
+      if (businessId && businessId.trim()) {
+        requestData.business_id = parseInt(businessId.trim());
+      }
+
+      await api.post("/employees/forgot-username-otp", requestData);
 
       toast.current.show({
         severity: "success",
         summary: "Success",
-        detail: "OTP has been sent to your email. Please check your inbox.",
+        detail:
+          "Your User ID(s) have been sent to your email. Please check your inbox.",
         life: 5000,
       });
-      setOtpSent(true);
-    } catch (error) {
-      toast.current.show({
-        severity: "error",
-        summary: "Error",
-        detail:
-          error.response?.data?.detail ||
-          "Failed to send OTP. Please try again.",
-        life: 3000,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!otp) {
-      toast.current.show({
-        severity: "warn",
-        summary: "Warning",
-        detail: "Please enter the OTP",
-        life: 3000,
-      });
-      return;
-    }
-
-    if (otp.length !== 6) {
-      toast.current.show({
-        severity: "warn",
-        summary: "Warning",
-        detail: "OTP must be 6 digits",
-        life: 3000,
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await api.post("/employees/verify-otp-username", {
-        email: email,
-        otp: otp,
-      });
-
       setShowSuccessDialog(true);
     } catch (error) {
+      const errorDetail =
+        error.response?.data?.detail ||
+        "Failed to send User IDs. Please try again.";
+      setEmailError(errorDetail);
       toast.current.show({
         severity: "error",
         summary: "Error",
-        detail:
-          error.response?.data?.detail ||
-          "Invalid or expired OTP. Please try again.",
+        detail: errorDetail,
         life: 3000,
       });
     } finally {
@@ -120,11 +77,7 @@ export default function ForgotUsername() {
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (!otpSent) {
-        handleSendOTP();
-      } else {
-        handleVerifyOTP();
-      }
+      handleSendOTP();
     }
   };
 
@@ -133,8 +86,8 @@ export default function ForgotUsername() {
       <Toast ref={toast} />
       <div>
         <Card
-          title="Forgot Username"
-          subTitle="Enter your email to receive a verification code"
+          title="Forgot User ID"
+          subTitle="Enter your email to receive your User ID(s)"
           className="sm:max-w-100 w-[90%] m-auto mt-6 p-2 border-round-lg shadow-2"
         >
           <div className="flex flex-column gap-3">
@@ -146,75 +99,60 @@ export default function ForgotUsername() {
                 id="email"
                 type="email"
                 placeholder="Enter your registered email"
-                className="w-full"
+                className={`w-full ${emailError ? "p-invalid" : ""}`}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailError("");
+                }}
                 onKeyPress={handleKeyPress}
-                disabled={otpSent}
               />
+              {emailError && (
+                <small className="p-error block mt-1">{emailError}</small>
+              )}
             </div>
 
-            {!otpSent && (
-              <Button
-                label="Send OTP"
-                icon="pi pi-send"
+            <div className="p-field">
+              <label htmlFor="businessId" className="block mb-2 font-medium">
+                Business ID <span className="text-gray-500">(Optional)</span>
+              </label>
+              <InputText
+                id="businessId"
+                type="text"
+                placeholder="Enter Business ID (if known)"
                 className="w-full"
-                loading={loading}
-                onClick={handleSendOTP}
+                value={businessId}
+                onChange={(e) =>
+                  setBusinessId(e.target.value.replace(/\D/g, ""))
+                }
+                onKeyPress={handleKeyPress}
               />
-            )}
+              <small className="block mt-1 text-600">
+                Enter Business ID to get User ID for a specific business only
+              </small>
+            </div>
 
-            {otpSent && (
-              <>
-                <div className="p-field">
-                  <label htmlFor="otp" className="block mb-2 font-medium">
-                    Enter OTP <span className="text-red-500">*</span>
-                  </label>
-                  <InputText
-                    id="otp"
-                    placeholder="Enter 6-digit OTP"
-                    className="w-full"
-                    value={otp}
-                    onChange={(e) =>
-                      setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
-                    onKeyPress={handleKeyPress}
-                    maxLength={6}
-                  />
-                  <small className="block mt-2 text-600">
-                    OTP valid for 10 minutes. Check your email inbox and spam
-                    folder.
-                  </small>
-                </div>
+            <small className="text-600 -mt-2">
+              If you have multiple accounts with this email, all User IDs will
+              be sent (unless Business ID is specified).
+            </small>
 
-                <div className="flex gap-2">
-                  <Button
-                    label="Verify OTP"
-                    icon="pi pi-check"
-                    className="flex-1"
-                    loading={loading}
-                    onClick={handleVerifyOTP}
-                  />
-                  <Button
-                    label="Resend OTP"
-                    icon="pi pi-refresh"
-                    className="flex-1 p-button-secondary"
-                    loading={loading}
-                    onClick={() => {
-                      setOtp("");
-                      setOtpSent(false);
-                    }}
-                  />
-                </div>
-              </>
-            )}
+            <Button
+              label="Send User ID(s)"
+              icon="pi pi-send"
+              className="w-full"
+              loading={loading}
+              onClick={handleSendOTP}
+            />
 
             <div className="flex flex-column gap-2 mt-3">
               <Button
                 label="Back to Login"
                 icon="pi pi-arrow-left"
                 className="p-button-text"
-                onClick={() => navigate("/login")}
+                onClick={() =>
+                  navigate("/login", { state: { fromForgotFlow: true } })
+                }
               />
               <Button
                 label="Forgot Password?"
@@ -233,7 +171,7 @@ export default function ForgotUsername() {
         style={{ width: "90vw", maxWidth: "500px" }}
         onHide={() => {
           setShowSuccessDialog(false);
-          navigate("/login");
+          navigate("/login", { state: { fromForgotFlow: true } });
         }}
         footer={
           <Button
@@ -241,7 +179,7 @@ export default function ForgotUsername() {
             icon="pi pi-sign-in"
             onClick={() => {
               setShowSuccessDialog(false);
-              navigate("/login");
+              navigate("/login", { state: { fromForgotFlow: true } });
             }}
             autoFocus
           />
@@ -254,10 +192,15 @@ export default function ForgotUsername() {
           ></i>
           <div>
             <p className="m-0 font-medium">
-              Your username has been sent to your email address.
+              Your User ID(s) have been sent to your email address.
             </p>
             <p className="mt-2 text-600">
-              Please check your inbox and use the User ID to login.
+              Please check your inbox. If you have multiple accounts, all User
+              IDs will be listed with their business details.
+            </p>
+            <p className="mt-2 text-600">
+              Use the appropriate User ID based on which business you want to
+              access.
             </p>
           </div>
         </div>

@@ -53,6 +53,11 @@ export const menuItems = [
     to: "/employees",
   },
   {
+    label: "Custom Labels",
+    icon: "pi pi-tags",
+    to: "/custom-labels",
+  },
+  {
     label: "Business Management",
     icon: "pi pi-building",
     to: "/business",

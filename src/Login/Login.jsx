@@ -16,9 +16,11 @@ export default function Login() {
   const location = useLocation();
 
   // If user is already authenticated, redirect them away from the login page
+  // UNLESS they came from forgot-username or forgot-password (they want to login as different user)
   useEffect(() => {
     try {
-      if (authService.isAuthenticated()) {
+      const fromForgotFlow = location.state?.fromForgotFlow;
+      if (authService.isAuthenticated() && !fromForgotFlow) {
         const returnUrl = location.state?.from?.pathname || "/dashboard";
         navigate(returnUrl, { replace: true });
       }

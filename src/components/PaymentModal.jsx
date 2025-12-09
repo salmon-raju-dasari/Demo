@@ -18,9 +18,10 @@ export default function PaymentModal({
   const [paymentVerifying, setPaymentVerifying] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const toast = useRef(null);
   const scriptLoaded = useRef(false);
   const isCapacitor = Capacitor.isNativePlatform();
+
+  console.log("PaymentModal Props:", { userId, isOwner, message });
 
   useEffect(() => {
     // Only load Razorpay script for web (not for Capacitor)
@@ -430,7 +431,7 @@ export default function PaymentModal({
                       </p>
                       <p className="text-sm text-600 m-0">
                         Your business owner needs to complete the one-time
-                        registration payment of ₹500.
+                        registration payment of ₹1.
                       </p>
                     </div>
                   </div>

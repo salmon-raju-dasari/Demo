@@ -74,6 +74,7 @@ export default function Employees() {
   // UI state (matches backend Employee schema)
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -90,12 +91,6 @@ export default function Employees() {
 
   // Custom Labels state for employee dialog
   const [employeeLabels, setEmployeeLabels] = useState([]);
-
-  // Custom Label Definition Dialog state
-  const [customLabelDialogVisible, setCustomLabelDialogVisible] =
-    useState(false);
-  const [newLabelName, setNewLabelName] = useState("");
-  const [newLabelValues, setNewLabelValues] = useState([""]);
 
   // Deprecated AutoComplete suggestion state (not used with Dropdown)
   // const [labelNameSuggestions, setLabelNameSuggestions] = useState([]);
@@ -122,6 +117,9 @@ export default function Employees() {
     "Blood Group": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
     "Employee Type": ["Full-Time", "Part-Time", "Contract", "Intern"],
   });
+
+  // State for database-backed label values
+  const [dbLabelValues, setDbLabelValues] = useState({});
 
   // Build label name options from predefined + custom defined + existing employee labels
   const labelNameOptions = [
@@ -172,17 +170,22 @@ export default function Employees() {
 
   // Fetch employees from backend with pagination
   const fetchEmployees = useCallback(
-    async (page = currentPage, limit = rowsPerPage) => {
+    async (
+      page = currentPage,
+      limit = rowsPerPage,
+      searchField = null,
+      searchValue = ""
+    ) => {
       try {
         setLoading(true);
         const skip = page * limit;
 
         // Build URL with query parameters
         let url = `/employees?skip=${skip}&limit=${limit}`;
-        if (filterField && filterValue.trim()) {
+        if (searchField && searchValue.trim()) {
           url += `&filter_field=${encodeURIComponent(
-            filterField
-          )}&filter_value=${encodeURIComponent(filterValue)}`;
+            searchField
+          )}&filter_value=${encodeURIComponent(searchValue)}`;
         }
 
         const response = await api.get(url);
@@ -228,13 +231,13 @@ export default function Employees() {
         setLoading(false);
       }
     },
-    [currentPage, rowsPerPage, filterField, filterValue]
+    [currentPage, rowsPerPage]
   );
 
-  // Fetch custom field labels from backend
+  // Fetch custom field labels from backend (custom_labels table)
   const fetchCustomFieldLabels = useCallback(async () => {
     try {
-      const response = await api.get("/employees/custom-fields/labels");
+      const response = await api.get("/custom-labels-names");
       setCustomFieldLabels(response.data || []);
     } catch (error) {
       console.error("Error fetching custom field labels:", error);
@@ -242,11 +245,64 @@ export default function Employees() {
     }
   }, []);
 
+  // Fetch values for a specific label from database (custom_labels table)
+  const fetchLabelValues = useCallback(async (labelName) => {
+    if (!labelName) return;
+    try {
+      const response = await api.get(
+        `/custom-labels-values/${encodeURIComponent(labelName)}`
+      );
+      setDbLabelValues((prev) => ({
+        ...prev,
+        [labelName]: response.data || [],
+      }));
+    } catch (error) {
+      console.error(`Error fetching values for label ${labelName}:`, error);
+    }
+  }, []);
+
+  // Fetch all custom labels from database and merge with predefined mappings
+  const fetchAllCustomLabels = useCallback(async () => {
+    try {
+      const response = await api.get("/custom-labels");
+      const customLabels = response.data || [];
+
+      // Convert array of custom labels to mapping object
+      const dbMappings = {};
+      customLabels.forEach((label) => {
+        dbMappings[label.label_name] = label.label_values;
+      });
+
+      // Merge with predefined mappings (database values take precedence)
+      setLabelValueMappings((prev) => ({
+        ...prev,
+        ...dbMappings,
+      }));
+
+      // Also update dbLabelValues for immediate availability
+      setDbLabelValues((prev) => ({
+        ...prev,
+        ...dbMappings,
+      }));
+    } catch (error) {
+      console.error("Error fetching all custom labels:", error);
+      // Silently fail - custom labels are optional
+    }
+  }, []);
+
   // Load employees and custom field labels on component mount
   useEffect(() => {
     fetchEmployees(currentPage, rowsPerPage);
     fetchCustomFieldLabels();
-  }, [currentPage, rowsPerPage, fetchEmployees, fetchCustomFieldLabels]);
+    // Fetch all custom labels from database to populate dropdowns
+    fetchAllCustomLabels();
+  }, [
+    currentPage,
+    rowsPerPage,
+    fetchEmployees,
+    fetchCustomFieldLabels,
+    fetchAllCustomLabels,
+  ]);
 
   // Reset form
   const resetForm = () => {
@@ -332,7 +388,19 @@ export default function Employees() {
   };
 
   // Delete employee
-  const handleDeleteEmployee = async (emp_id) => {
+  const handleDeleteEmployee = async (emp_id, employeeRole) => {
+    // Prevent deletion of owners
+    if (employeeRole === "owner") {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Cannot Delete Owner",
+        detail:
+          "Owner accounts with associated business cannot be deleted. Remove the business first.",
+        life: 4000,
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       await api.delete(`/employees/${emp_id}`);
@@ -405,7 +473,7 @@ export default function Employees() {
     setFormErrors({});
 
     try {
-      setLoading(true);
+      setSaveLoading(true);
 
       // Format joining date from Calendar to dd/mm/yyyy
       const formattedJoiningDate = employeeForm.joining_date
@@ -509,7 +577,7 @@ export default function Employees() {
         life: 5000,
       });
     } finally {
-      setLoading(false);
+      setSaveLoading(false);
     }
   };
 
@@ -585,6 +653,10 @@ export default function Employees() {
               originalValue: l.value,
             };
           }
+          // If changing label name, fetch values for the new label
+          if (field === "name" && value !== l.name) {
+            fetchLabelValues(value);
+          }
           return { ...l, [field]: value };
         }
         return l;
@@ -621,103 +693,19 @@ export default function Employees() {
   const getLabelValueOptions = (labelName) => {
     if (!labelName) return [];
 
-    // If predefined mapping exists, use it
-    if (labelValueMappings[labelName]) {
-      return labelValueMappings[labelName].map((v) => ({ label: v, value: v }));
+    // Fetch from database if not already loaded
+    if (!dbLabelValues[labelName] && !labelValueMappings[labelName]) {
+      fetchLabelValues(labelName);
     }
 
-    // Otherwise, get values from existing employee custom_fields with this name
-    const existingValues = [
-      ...new Set(
-        employees
-          .flatMap((e) => e.custom_fields || [])
-          .flatMap((fieldObj) =>
-            Object.entries(fieldObj)
-              .filter(([name]) => name === labelName)
-              .map(([, value]) => value)
-          )
-          .filter(Boolean)
-      ),
-    ];
+    // Combine predefined mappings with database values
+    const predefinedValues = labelValueMappings[labelName] || [];
+    const databaseValues = dbLabelValues[labelName] || [];
 
-    return existingValues.map((v) => ({ label: v, value: v }));
-  };
+    // Merge and deduplicate
+    const allValues = [...new Set([...predefinedValues, ...databaseValues])];
 
-  // Custom Label Definition Dialog handlers
-  const handleOpenCustomLabelDialog = () => {
-    setNewLabelName("");
-    setNewLabelValues([""]);
-    setCustomLabelDialogVisible(true);
-  };
-
-  const handleAddLabelValue = () => {
-    setNewLabelValues((prev) => [...prev, ""]);
-  };
-
-  const handleRemoveLabelValue = (index) => {
-    setNewLabelValues((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleLabelValueChange = (index, value) => {
-    setNewLabelValues((prev) => prev.map((v, i) => (i === index ? value : v)));
-  };
-
-  const handleSaveCustomLabel = () => {
-    const trimmedName = newLabelName.trim();
-    const validValues = newLabelValues
-      .filter((v) => v.trim())
-      .map((v) => v.trim());
-
-    if (!trimmedName) {
-      toast.current?.show({
-        severity: "warn",
-        summary: "Invalid Input",
-        detail: "Please enter a label name.",
-        life: 3000,
-      });
-      return;
-    }
-
-    if (validValues.length === 0) {
-      toast.current?.show({
-        severity: "warn",
-        summary: "Invalid Input",
-        detail: "Please add at least one label value.",
-        life: 3000,
-      });
-      return;
-    }
-
-    // Check if label name already exists
-    if (labelValueMappings[trimmedName]) {
-      toast.current?.show({
-        severity: "warn",
-        summary: "Label Already Exists",
-        detail: `Label "${trimmedName}" already exists. Values will be merged.`,
-        life: 3000,
-      });
-    }
-
-    // Add or update label mapping
-    setLabelValueMappings((prev) => ({
-      ...prev,
-      [trimmedName]: [
-        ...new Set([...(prev[trimmedName] || []), ...validValues]),
-      ],
-    }));
-
-    toast.current?.show({
-      severity: "success",
-      summary: "Custom Label Added",
-      detail: `Label "${trimmedName}" with ${validValues.length} value(s) has been added.`,
-      life: 3000,
-    });
-
-    setCustomLabelDialogVisible(false);
-  };
-
-  const handleCancelCustomLabel = () => {
-    setCustomLabelDialogVisible(false);
+    return allValues.map((v) => ({ label: v, value: v }));
   };
 
   // Deprecated AutoComplete search methods (replaced by Dropdown filter)
@@ -732,14 +720,17 @@ export default function Employees() {
     setFilterField(null);
     setFilterValue("");
     setCurrentPage(0); // Reset to first page
+    // Fetch all employees without filters
+    fetchEmployees(0, rowsPerPage, null, "");
   };
 
-  // Reset to page 0 when filter changes
-  useEffect(() => {
-    if (filterField || filterValue) {
+  // Search handler - only fetch when user clicks search
+  const handleSearch = () => {
+    if (filterField && filterValue.trim()) {
       setCurrentPage(0);
+      fetchEmployees(0, rowsPerPage, filterField, filterValue);
     }
-  }, [filterField, filterValue]);
+  };
 
   // Render employee card
   const renderEmployeeCard = (employee) => {
@@ -796,7 +787,14 @@ export default function Employees() {
             icon="pi pi-trash"
             label="Delete"
             className="p-button-sm p-button-danger p-button-outlined"
-            onClick={() => handleDeleteEmployee(employee.emp_id)}
+            onClick={() => handleDeleteEmployee(employee.emp_id, employee.role)}
+            disabled={employee.role === "owner"}
+            tooltip={
+              employee.role === "owner"
+                ? "Cannot delete owner with associated business"
+                : ""
+            }
+            tooltipOptions={{ position: "top" }}
           />
         </div>
       </Card>
@@ -1019,20 +1017,6 @@ export default function Employees() {
             </div>
           )}
 
-          {/* Add Custom Label Definition Button (before Custom Fields) */}
-          <div className="flex items-center gap-2 mb-2">
-            <Button
-              icon="pi pi-plus"
-              label="Define Custom Label"
-              size="small"
-              severity="help"
-              outlined
-              onClick={handleOpenCustomLabelDialog}
-              tooltip="Add a new custom label with predefined values"
-              tooltipOptions={{ position: "top" }}
-            />
-          </div>
-
           {/* Custom Fields (Labels) under Joining Date */}
           <div className="bg-blue-100 p-4 pt-3 rounded">
             <div className="flex items-center justify-between">
@@ -1156,102 +1140,15 @@ export default function Employees() {
               severity="secondary"
               onClick={handleCancel}
               className="dialog-btn"
+              disabled={saveLoading}
             />
             <Button
               label={isEditing ? "Update" : "Add"}
               severity="success"
               onClick={handleSaveEmployee}
               className="dialog-btn"
-            />
-          </div>
-        </div>
-      </Dialog>
-
-      {/* Custom Label Definition Dialog */}
-      <Dialog
-        header="Add Custom Label"
-        visible={customLabelDialogVisible}
-        style={{ width: "95vw", maxWidth: "550px" }}
-        onHide={handleCancelCustomLabel}
-        draggable={false}
-        resizable={false}
-        blockScroll
-        className="employee-dialog"
-      >
-        <div className="employee-dialog-content">
-          {/* Label Name */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[0.85rem] font-semibold">
-              Label Name <span className="text-red-500">*</span>
-            </label>
-            <InputText
-              value={newLabelName}
-              onChange={(e) => setNewLabelName(e.target.value)}
-              placeholder="e.g., Shirt Size, T-Shirt Size"
-              className="w-full"
-            />
-          </div>
-
-          {/* Label Values */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[0.85rem] font-semibold">
-              Label Values <span className="text-red-500">*</span>
-            </label>
-            {newLabelValues.map((value, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <InputText
-                  value={value}
-                  onChange={(e) =>
-                    handleLabelValueChange(index, e.target.value)
-                  }
-                  placeholder={`Value ${index + 1}`}
-                  className="flex-1"
-                />
-                <div className="flex gap-1">
-                  {newLabelValues.length > 1 && (
-                    <Button
-                      icon="pi pi-trash"
-                      rounded
-                      text
-                      severity="danger"
-                      onClick={() => handleRemoveLabelValue(index)}
-                      tooltip="Remove"
-                      tooltipOptions={{ position: "top" }}
-                      className="w-8! h-8! p-0! flex items-center justify-center hover:bg-red-50"
-                      style={{ fontSize: "0.75rem" }}
-                    />
-                  )}
-                  {index === newLabelValues.length - 1 && (
-                    <Button
-                      icon="pi pi-plus"
-                      rounded
-                      text
-                      severity="success"
-                      onClick={handleAddLabelValue}
-                      tooltip="Add Value"
-                      tooltipOptions={{ position: "top" }}
-                      className="w-8! h-8! p-0! flex items-center justify-center hover:bg-green-50"
-                      style={{ fontSize: "0.75rem" }}
-                    />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Dialog Actions */}
-          <div className="dialog-actions">
-            <Button
-              label="Cancel"
-              severity="secondary"
-              onClick={handleCancelCustomLabel}
-              className="dialog-btn"
-            />
-            <Button
-              label="Add"
-              severity="success"
-              onClick={handleSaveCustomLabel}
-              className="dialog-btn"
+              loading={saveLoading}
+              disabled={saveLoading}
             />
           </div>
         </div>
@@ -1283,6 +1180,7 @@ export default function Employees() {
               optionValue="value"
               placeholder="Type or Select field to filter"
               className="filter-dropdown"
+              editable
               filter
             />
             <InputText
@@ -1299,6 +1197,13 @@ export default function Employees() {
               }
               className="filter-input"
               disabled={!filterField}
+            />
+            <Button
+              icon="pi pi-search"
+              label="Search"
+              className="p-button-primary search-btn"
+              onClick={handleSearch}
+              disabled={!filterField || !filterValue.trim()}
             />
             <Button
               icon="pi pi-times"
@@ -1395,7 +1300,12 @@ export default function Employees() {
                   <h2 className="text-2xl font-bold text-gray-800">
                     {viewingEmployee.name}
                   </h2>
-                  <p className="text-gray-600">ID: {viewingEmployee.emp_id}</p>
+                  <p className="text-gray-600">
+                    User ID: USR{viewingEmployee.emp_id}
+                  </p>
+                  <p className="text-gray-600">
+                    Business ID: {viewingEmployee.business_id}
+                  </p>
                   {viewingEmployee.role && (
                     <span className="inline-block mt-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
                       {viewingEmployee.role}

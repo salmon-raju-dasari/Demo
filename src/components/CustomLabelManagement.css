@@ -1,0 +1,233 @@
+/* Custom Label Management Styles */
+
+/* Main container responsive padding */
+.custom-label-main-container {
+    padding: 0.75rem;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+    .custom-label-main-container {
+        padding: 1rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .custom-label-main-container {
+        padding: 1.5rem;
+    }
+}
+
+/* Ensure cards don't overflow on mobile */
+.custom-label-card {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Ensure all PrimeReact cards have proper width */
+.custom-label-main-container .p-card {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.custom-label-main-container .p-card .p-card-body,
+.custom-label-main-container .p-card .p-card-content {
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 1rem;
+}
+
+@media (max-width: 640px) {
+
+    .custom-label-main-container .p-card .p-card-body,
+    .custom-label-main-container .p-card .p-card-content {
+        padding: 0.75rem;
+    }
+}
+
+/* Mobile-friendly input groups */
+@media (max-width: 640px) {
+    .custom-label-edit-name {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .custom-label-edit-name .p-inputtext {
+        width: 100% !important;
+        margin-bottom: 0.5rem;
+    }
+
+    .custom-label-edit-name .p-button {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Action buttons wrapper */
+    .custom-label-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .custom-label-actions .p-button {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    /* Value management section */
+    .custom-label-values .p-inputtext {
+        font-size: 14px;
+    }
+
+    /* Label list items */
+    .label-list-item {
+        padding: 0.75rem !important;
+    }
+
+    .label-list-item .label-name {
+        font-size: 0.875rem;
+    }
+
+    .label-list-item .label-count {
+        font-size: 0.75rem;
+    }
+}
+
+/* Tablet and above */
+@media (min-width: 641px) {
+    .custom-label-edit-name {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .custom-label-edit-name .p-inputtext {
+        flex: 1;
+    }
+}
+
+/* Ensure proper spacing for cards */
+/* .p-card .p-card-content {
+    padding: 1rem;
+}
+
+@media (max-width: 640px) {
+    .p-card .p-card-content {
+        padding: 0.75rem;
+    }
+} */
+
+/* Fix button alignment in mobile */
+.custom-label-button-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+@media (max-width: 640px) {
+    .custom-label-button-group {
+        justify-content: center;
+    }
+}
+
+/* Scrollable label list */
+.label-list-container {
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Grid layout fixes for mobile */
+.custom-label-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    max-width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .custom-label-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    }
+}
+
+/* Ensure flex containers don't overflow */
+.custom-label-main-container .flex {
+    max-width: 100%;
+}
+
+.custom-label-main-container .flex-1 {
+    min-width: 0;
+    /* Allow flex items to shrink below content size */
+}
+
+/* Input fields width control */
+.custom-label-main-container .p-inputtext {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.custom-label-main-container .p-dropdown {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure buttons don't overflow on mobile */
+@media (max-width: 640px) {
+    .custom-label-main-container .p-button {
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .custom-label-main-container .p-button .p-button-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* Perfect icon centering for rounded buttons */
+.custom-label-button-group .p-button.p-button-rounded {
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-label-button-group .p-button.p-button-rounded .p-button-icon {
+    margin: 0;
+    font-size: 1rem;
+}
+
+/* Custom scrollbar */
+.label-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.label-list-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.label-list-container::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 3px;
+}
+
+.label-list-container::-webkit-scrollbar-thumb:hover {
+    background: #764ba2;
+}

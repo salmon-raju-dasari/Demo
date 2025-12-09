@@ -9,6 +9,7 @@ import { Dialog } from "primereact/dialog";
 import { api } from "../services/api/axios";
 
 export default function ForgotPassword() {
+  const [userId, setUserId] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,16 @@ export default function ForgotPassword() {
   }, [navigate]);
 
   const handleSendOTP = async () => {
+    if (!userId) {
+      toast.current.show({
+        severity: "warn",
+        summary: "Warning",
+        detail: "Please enter your User ID",
+        life: 3000,
+      });
+      return;
+    }
+
     if (!email) {
       toast.current.show({
         severity: "warn",
@@ -50,6 +61,7 @@ export default function ForgotPassword() {
     try {
       setLoading(true);
       await api.post("/employees/forgot-password-otp", {
+        user_id: userId.toUpperCase(),
         email: email,
       });
 
@@ -134,10 +146,29 @@ export default function ForgotPassword() {
       <div>
         <Card
           title="Forgot Password"
-          subTitle="Enter your email to receive a verification code"
+          subTitle="Enter your User ID and email to receive a verification code"
           className="sm:max-w-100 w-[90%] m-auto mt-6 p-2 border-round-lg shadow-2"
         >
           <div className="flex flex-column gap-3">
+            <div className="p-field">
+              <label htmlFor="userId" className="block mb-2 font-medium">
+                User ID <span className="text-red-500">*</span>
+              </label>
+              <InputText
+                id="userId"
+                type="text"
+                placeholder="Enter your User ID (e.g., USR1000)"
+                className="w-full"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value.toUpperCase())}
+                onKeyPress={handleKeyPress}
+                disabled={otpSent}
+              />
+              <small className="block mt-1 text-600">
+                If you don't know your User ID, use "Forgot Username" below.
+              </small>
+            </div>
+
             <div className="p-field">
               <label htmlFor="email" className="block mb-2 font-medium">
                 Email Address <span className="text-red-500">*</span>
@@ -214,7 +245,9 @@ export default function ForgotPassword() {
                 label="Back to Login"
                 icon="pi pi-arrow-left"
                 className="p-button-text"
-                onClick={() => navigate("/login")}
+                onClick={() =>
+                  navigate("/login", { state: { fromForgotFlow: true } })
+                }
               />
               <Button
                 label="Forgot Username?"
@@ -233,7 +266,7 @@ export default function ForgotPassword() {
         style={{ width: "90vw", maxWidth: "500px" }}
         onHide={() => {
           setShowSuccessDialog(false);
-          navigate("/login");
+          navigate("/login", { state: { fromForgotFlow: true } });
         }}
         footer={
           <Button
@@ -241,7 +274,7 @@ export default function ForgotPassword() {
             icon="pi pi-sign-in"
             onClick={() => {
               setShowSuccessDialog(false);
-              navigate("/login");
+              navigate("/login", { state: { fromForgotFlow: true } });
             }}
             autoFocus
           />

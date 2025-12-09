@@ -34,6 +34,8 @@ export const MainLayout = ({ children }) => {
             localStorage.setItem(`payment_completed_${currentUserId}`, "true");
             setShowPaymentModal(false);
           } else {
+            console.log("Payment status response:", data);
+            console.log("Is owner:", data.is_owner);
             setUserId(currentUserId);
             setIsOwner(data.is_owner);
             setPaymentMessage(data.message || "");

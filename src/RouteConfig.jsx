@@ -13,6 +13,7 @@ import AddProducts from "./components/AddProducts";
 import Employees from "./components/Employees";
 import Business from "./components/Business";
 import StoreManagement from "./components/StoreManagement";
+import CustomLabelManagement from "./components/CustomLabelManagement";
 // Import your other components
 
 const RouteConfig = () => {
@@ -69,6 +70,17 @@ const RouteConfig = () => {
           <ProtectedRoute requiredRoles={["admin", "owner", "manager"]}>
             <MainLayout>
               <Employees />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/custom-labels"
+        element={
+          <ProtectedRoute requiredRoles={["admin", "owner", "manager"]}>
+            <MainLayout>
+              <CustomLabelManagement />
             </MainLayout>
           </ProtectedRoute>
         }
