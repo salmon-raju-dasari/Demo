@@ -1,26 +1,27 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { Dialog } from "primereact/dialog";
-import { DataTable } from "primereact/datatable";
-import { Column } from "primereact/column";
 import { Toast } from "primereact/toast";
+import { Card } from "primereact/card";
+import { Paginator } from "primereact/paginator";
+import { Dropdown } from "primereact/dropdown";
+import { Chip } from "primereact/chip";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import api from "../services/api/axios";
 import "../styles/storemanagement.css";
 
+/**
+ * StoreManagement Component
+ * Enterprise-grade store management with:
+ * - Card-based UI like Employees
+ * - Complete store CRUD operations
+ * - Filtering and search functionality
+ * - Primary key (store_id) used for all operations
+ */
 export default function StoreManagement() {
-  const toast = useRef(null);
-  const hasFetchedRef = useRef(false);
-
-  const [stores, setStores] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [dialogVisible, setDialogVisible] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentStore, setCurrentStore] = useState(null);
-  const [errors, setErrors] = useState({});
-
-  const [formData, setFormData] = useState({
+  // Store form state
+  const [storeForm, setStoreForm] = useState({
     store_name: "",
     store_address: "",
     store_city: "",
@@ -29,69 +30,109 @@ export default function StoreManagement() {
     store_pincode: "",
   });
 
+  // UI state
+  const [stores, setStores] = useState([]); // Display data (paginated)
+  const [loading, setLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const [dialogVisible, setDialogVisible] = useState(false);
+  const [viewDialogVisible, setViewDialogVisible] = useState(false);
+  const [viewingStore, setViewingStore] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingStoreId, setEditingStoreId] = useState(null);
+  const [filterField, setFilterField] = useState(null);
+  const [filterValue, setFilterValue] = useState("");
+  const [activeFilters, setActiveFilters] = useState([]);
+  const [formErrors, setFormErrors] = useState({});
+  const toast = useRef(null);
+
+  // Filter options
+  const filterOptions = [
+    { label: "Store Name", value: "store_name" },
+    { label: "City", value: "store_city" },
+    { label: "State", value: "store_state" },
+    { label: "Country", value: "store_country" },
+    { label: "Pincode", value: "store_pincode" },
+  ];
+
+  // Fetch stores from backend with pagination and filtering
+  const fetchStores = useCallback(
+    async (
+      page = currentPage,
+      limit = rowsPerPage,
+      filters = activeFilters
+    ) => {
+      try {
+        setLoading(true);
+        const skip = page * limit;
+
+        // Build URL with query parameters
+        let url = `/stores?skip=${skip}&limit=${limit}`;
+
+        // Use multiple filters if available
+        if (filters && filters.length > 0) {
+          url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+        }
+
+        const response = await api.get(url);
+
+        // Handle paginated response from backend
+        if (response.data.items && Array.isArray(response.data.items)) {
+          setStores(response.data.items);
+          setTotalRecords(response.data.total || 0);
+        } else {
+          // Fallback for non-paginated response
+          setStores(response.data);
+          setTotalRecords(response.data.length);
+        }
+      } catch (error) {
+        console.error("Error fetching stores:", error);
+        toast.current?.show({
+          severity: "error",
+          summary: "Error",
+          detail: error.response?.data?.detail || "Failed to load stores",
+          life: 4000,
+        });
+        setStores([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [currentPage, rowsPerPage, activeFilters]
+  );
+
+  // Initial fetch on component mount
   useEffect(() => {
-    if (!hasFetchedRef.current) {
-      hasFetchedRef.current = true;
-      fetchStores();
-    }
-  }, []);
+    fetchStores();
+  }, [fetchStores]);
 
-  const fetchStores = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get("/stores");
-      setStores(response.data);
-    } catch (error) {
-      console.error("Error fetching stores:", error);
-      toast.current?.show({
-        severity: "error",
-        summary: "Error",
-        detail: error.response?.data?.detail || "Failed to load stores",
-        life: 3000,
-      });
-    } finally {
-      setLoading(false);
+  // Form validation
+  const validateForm = () => {
+    const errors = {};
+
+    if (!storeForm.store_name || !storeForm.store_name.trim()) {
+      errors.store_name = "Store name is required";
     }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
+  // Handle form field change
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+    setStoreForm((prev) => ({ ...prev, [field]: value }));
+    // Clear error for this field
+    if (formErrors[field]) {
+      setFormErrors((prev) => ({ ...prev, [field]: null }));
     }
   };
 
-  const openDialog = (store = null) => {
-    if (store) {
-      setIsEditMode(true);
-      setCurrentStore(store);
-      setFormData({
-        store_name: store.store_name,
-        store_address: store.store_address || "",
-        store_city: store.store_city || "",
-        store_state: store.store_state || "",
-        store_country: store.store_country || "",
-        store_pincode: store.store_pincode || "",
-      });
-    } else {
-      setIsEditMode(false);
-      setCurrentStore(null);
-      setFormData({
-        store_name: "",
-        store_address: "",
-        store_city: "",
-        store_state: "",
-        store_country: "",
-        store_pincode: "",
-      });
-    }
-    setErrors({});
-    setDialogVisible(true);
-  };
-
-  const closeDialog = () => {
-    setDialogVisible(false);
-    setFormData({
+  // Open dialog for adding new store
+  const handleAddStore = () => {
+    setStoreForm({
       store_name: "",
       store_address: "",
       store_city: "",
@@ -99,55 +140,51 @@ export default function StoreManagement() {
       store_country: "",
       store_pincode: "",
     });
-    setErrors({});
-    setCurrentStore(null);
-    setIsEditMode(false);
+    setFormErrors({});
+    setIsEditing(false);
+    setEditingStoreId(null);
+    setDialogVisible(true);
   };
 
-  const handleSubmit = async () => {
+  // Open dialog for editing store
+  const handleEditStore = (store) => {
+    console.log("Editing store:", store);
+    setStoreForm({
+      store_name: store.store_name || "",
+      store_address: store.store_address || "",
+      store_city: store.store_city || "",
+      store_state: store.store_state || "",
+      store_country: store.store_country || "",
+      store_pincode: store.store_pincode || "",
+    });
+    setFormErrors({});
+    setIsEditing(true);
+    setEditingStoreId(store.id); // Use id as primary key
+    setDialogVisible(true);
+  };
+
+  // Save store (create or update)
+  const handleSaveStore = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
     try {
-      // Validate required fields
-      const newErrors = {};
-      if (!formData.store_name || !formData.store_name.trim()) {
-        newErrors.store_name = "Store name is required";
-      }
+      setSaveLoading(true);
 
-      if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        toast.current?.show({
-          severity: "warn",
-          summary: "Validation Error",
-          detail: "Please fill in all required fields",
-          life: 4000,
-        });
-        return;
-      }
-
-      setErrors({});
-      setLoading(true);
-
-      let response;
-      if (isEditMode) {
-        response = await api.put(`/stores/${currentStore.store_id}`, formData);
-
-        if (response.status === 422) {
-          throw { response };
-        }
-
-        toast.current?.show({
+      if (isEditing) {
+        // Update existing store using store_id
+        await api.put(`/stores/${editingStoreId}`, storeForm);
+        toast.current.show({
           severity: "success",
           summary: "Success",
           detail: "Store updated successfully",
           life: 3000,
         });
       } else {
-        response = await api.post("/stores", formData);
-
-        if (response.status === 422) {
-          throw { response };
-        }
-
-        toast.current?.show({
+        // Create new store
+        await api.post("/stores", storeForm);
+        toast.current.show({
           severity: "success",
           summary: "Success",
           detail: "Store created successfully",
@@ -155,250 +192,507 @@ export default function StoreManagement() {
         });
       }
 
-      closeDialog();
+      setDialogVisible(false);
       fetchStores();
     } catch (error) {
       console.error("Error saving store:", error);
-
-      let errorMessage = "Failed to save store. Please try again.";
-      let severity = "error";
-      let summary = "Save Failed";
-
-      if (error.response?.status === 422) {
-        severity = "warn";
-        summary = "Invalid Input";
-        if (error.response?.data?.detail) {
-          errorMessage =
-            typeof error.response.data.detail === "string"
-              ? error.response.data.detail
-              : "Please check your input";
-        }
-      } else if (error.response?.status === 400) {
-        severity = "warn";
-        summary = "Validation Error";
-        errorMessage = error.response?.data?.detail || errorMessage;
-      } else if (error.response?.status === 404) {
-        severity = "warn";
-        summary = "Not Found";
-        errorMessage = error.response?.data?.detail || errorMessage;
-      } else if (error.response?.status === 409) {
-        severity = "warn";
-        summary = "Conflict";
-        errorMessage = error.response?.data?.detail || errorMessage;
-      } else if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      }
-
-      toast.current?.show({
-        severity: severity,
-        summary: summary,
-        detail: errorMessage,
-        life: 5000,
+      toast.current.show({
+        severity: "error",
+        summary: "Error",
+        detail: error.response?.data?.detail || "Failed to save store",
+        life: 3000,
       });
     } finally {
-      setLoading(false);
+      setSaveLoading(false);
     }
   };
 
-  const confirmDelete = (store) => {
+  // Delete store
+  const handleDeleteStore = (store) => {
+    console.log("Deleting store:", store);
     confirmDialog({
       message: `Are you sure you want to delete "${store.store_name}"?`,
-      header: "Delete Confirmation",
+      header: "Confirm Delete",
       icon: "pi pi-exclamation-triangle",
-      accept: () => deleteStore(store.store_id),
-      reject: () => {},
+      acceptClassName: "p-button-danger",
+      accept: async () => {
+        try {
+          // Use id as primary key
+          console.log(`Calling DELETE /stores/${store.id}`);
+          await api.delete(`/stores/${store.id}`);
+          toast.current.show({
+            severity: "success",
+            summary: "Success",
+            detail: "Store deleted successfully",
+            life: 3000,
+          });
+
+          // Refresh the stores list
+          fetchStores();
+        } catch (error) {
+          console.error("Error deleting store:", error);
+          toast.current.show({
+            severity: "error",
+            summary: "Error",
+            detail: error.response?.data?.detail || "Failed to delete store",
+            life: 3000,
+          });
+        }
+      },
     });
+  }; // View store details
+  const handleViewStore = (store) => {
+    console.log("Viewing store:", store);
+    // Use the store data directly from the list
+    setViewingStore(store);
+    setViewDialogVisible(true);
   };
 
-  const deleteStore = async (storeId) => {
-    try {
-      setLoading(true);
-      await api.delete(`/stores/${storeId}`);
-      toast.current?.show({
-        severity: "success",
-        summary: "Deleted",
-        detail: "Store deleted successfully",
-        life: 3000,
-      });
-      fetchStores();
-    } catch (error) {
-      console.error("Error deleting store:", error);
-      toast.current?.show({
-        severity: "error",
-        summary: "Delete Failed",
-        detail: error.response?.data?.detail || "Failed to delete store",
-        life: 3000,
-      });
-    } finally {
-      setLoading(false);
+  // Get label for filter field
+  const getFilterFieldLabel = (fieldValue) => {
+    const option = filterOptions.find((opt) => opt.value === fieldValue);
+    return option ? option.label : fieldValue;
+  };
+
+  // Search handler - add filter to active filters
+  const handleSearch = () => {
+    if (filterField && filterValue.trim()) {
+      let processedValue = filterValue.trim();
+
+      // Check if this exact filter already exists
+      const filterExists = activeFilters.some(
+        (f) => f.field === filterField && f.value === processedValue
+      );
+
+      if (!filterExists) {
+        const newFilter = {
+          field: filterField,
+          value: processedValue,
+          label: getFilterFieldLabel(filterField),
+        };
+        const updatedFilters = [...activeFilters, newFilter];
+        setActiveFilters(updatedFilters);
+        setCurrentPage(0);
+        fetchStores(0, rowsPerPage, updatedFilters);
+      }
+
+      // Clear input fields for next filter
+      setFilterField(null);
+      setFilterValue("");
     }
   };
 
-  const actionBodyTemplate = (rowData) => {
-    return (
-      <div className="action-buttons">
-        <Button
-          icon="pi pi-pencil"
-          rounded
-          text
-          severity="info"
-          onClick={() => openDialog(rowData)}
-          tooltip="Edit"
-          tooltipOptions={{ position: "top" }}
-        />
-        <Button
-          icon="pi pi-trash"
-          rounded
-          text
-          severity="danger"
-          onClick={() => confirmDelete(rowData)}
-          tooltip="Delete"
-          tooltipOptions={{ position: "top" }}
-        />
-      </div>
-    );
+  // Clear all filters
+  const handleClearFilters = () => {
+    setFilterField(null);
+    setFilterValue("");
+    setActiveFilters([]);
+    setCurrentPage(0);
+    fetchStores(0, rowsPerPage, []);
   };
 
+  // Remove individual filter
+  const removeFilter = (filterToRemove) => {
+    const updatedFilters = activeFilters.filter(
+      (f) =>
+        !(f.field === filterToRemove.field && f.value === filterToRemove.value)
+    );
+    setActiveFilters(updatedFilters);
+    setCurrentPage(0);
+    fetchStores(0, rowsPerPage, updatedFilters);
+  };
+
+  // Pagination change handler is inline in the JSX
+
+  // Dialog footer
   const dialogFooter = (
-    <div>
+    <div className="dialog-footer">
       <Button
         label="Cancel"
         icon="pi pi-times"
-        onClick={closeDialog}
+        onClick={() => setDialogVisible(false)}
         className="p-button-text"
-        disabled={loading}
+        disabled={saveLoading}
       />
       <Button
-        label={isEditMode ? "Update" : "Create"}
+        label={isEditing ? "Update" : "Save"}
         icon="pi pi-check"
-        onClick={handleSubmit}
-        loading={loading}
-        disabled={loading}
+        onClick={handleSaveStore}
+        loading={saveLoading}
+        autoFocus
       />
     </div>
   );
 
   return (
-    <div className="store-management-container">
+    <div className="store-management">
       <Toast ref={toast} />
       <ConfirmDialog />
 
+      {/* Header */}
       <div className="store-header">
-        <div>
-          <h2>
-            <i className="pi pi-building"></i> Store Management
-          </h2>
-          <p>Manage your business store locations</p>
-        </div>
+        <h2>
+          <i className="pi pi-building"></i> Store Management
+        </h2>
         <Button
-          label="Add Store"
+          label="Add New Store"
           icon="pi pi-plus"
-          onClick={() => openDialog()}
+          onClick={handleAddStore}
           className="add-store-btn"
         />
       </div>
 
-      <DataTable
-        value={stores}
-        loading={loading}
-        paginator
-        rows={10}
-        rowsPerPageOptions={[5, 10, 25, 50]}
-        emptyMessage="No stores found. Click 'Add Store' to create one."
-        className="stores-table"
-      >
-        <Column field="store_name" header="Store Name" sortable />
-        <Column field="store_address" header="Address" />
-        <Column field="store_city" header="City" sortable />
-        <Column field="store_state" header="State" sortable />
-        <Column field="store_country" header="Country" sortable />
-        <Column field="store_pincode" header="Pincode" />
-        <Column
-          body={actionBodyTemplate}
-          header="Actions"
-          style={{ width: "120px" }}
+      {/* Filter Section Card */}
+      <div className="filter-section filter-column-layout mb-5!">
+        <Dropdown
+          value={filterField}
+          options={filterOptions}
+          onChange={(e) => setFilterField(e.value)}
+          placeholder="Select field to filter"
+          className="filter-dropdown"
+          showClear
+          editable
+          filter
         />
-      </DataTable>
+        <InputText
+          value={filterValue}
+          onChange={(e) => setFilterValue(e.target.value)}
+          placeholder={
+            filterField
+              ? `Search by ${getFilterFieldLabel(filterField)}`
+              : "Select a field first"
+          }
+          className="filter-input"
+          disabled={!filterField}
+          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+        />
+        <div className="filter-btn-row">
+          <Button
+            label="Search"
+            icon="pi pi-search"
+            onClick={handleSearch}
+            disabled={!filterField || !filterValue.trim()}
+            className="filter-btn search-btn p-button-primary"
+          />
+          <Button
+            label="Clear"
+            icon="pi pi-times"
+            onClick={handleClearFilters}
+            className="p-button-outlined clear-filter-btn p-button-secondary"
+            disabled={
+              activeFilters.length === 0 && !filterField && !filterValue
+            }
+          />
+        </div>
 
+        {/* Active Filters Chips */}
+        {activeFilters.length > 0 && (
+          <div className="active-filters-chips">
+            {activeFilters.map((filter, index) => (
+              <Chip
+                key={`${filter.field}-${index}`}
+                label={`${filter.label}: ${filter.value}`}
+                removable
+                onRemove={() => removeFilter(filter)}
+                className="filter-chip"
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="results-info">
+          <span className="results-count">
+            {loading ? (
+              "Loading..."
+            ) : totalRecords === 0 ? (
+              "No stores found"
+            ) : (
+              <>
+                Showing {currentPage * rowsPerPage + 1}-
+                {Math.min((currentPage + 1) * rowsPerPage, totalRecords)} of{" "}
+                {totalRecords} store{totalRecords !== 1 ? "s" : ""}
+              </>
+            )}
+          </span>
+        </div>
+      </div>
+
+      {/* Store Cards Grid */}
+      <div className="stores-grid">
+        {loading ? (
+          <div className="loading-container">
+            <i
+              className="pi pi-spin pi-spinner"
+              style={{ fontSize: "3rem" }}
+            ></i>
+            <p>Loading stores...</p>
+          </div>
+        ) : stores.length === 0 ? (
+          <div className="no-data-container">
+            <i
+              className="pi pi-inbox"
+              style={{ fontSize: "4rem", color: "#ccc" }}
+            ></i>
+            <h3>No Stores Found</h3>
+            <p>
+              {activeFilters.length > 0
+                ? "No stores match your filter criteria. Try adjusting your filters."
+                : "Get started by adding your first store location."}
+            </p>
+            {activeFilters.length === 0 && (
+              <Button
+                label="Add Your First Store"
+                icon="pi pi-plus"
+                onClick={handleAddStore}
+                className="p-button-lg"
+              />
+            )}
+          </div>
+        ) : (
+          stores.map((store) => (
+            <Card key={store.id} className="store-card">
+              <div className="store-card-header">
+                <div className="store-icon">
+                  <i className="pi pi-building"></i>
+                </div>
+                <div className="store-basic-info">
+                  <h3 className="store-name">{store.store_name}</h3>
+                  <span className="store-id">Store ID: {store.store_id}</span>
+                </div>
+                <Button
+                  icon="pi pi-eye"
+                  className="p-button-rounded p-button-text p-button-sm"
+                  onClick={() => handleViewStore(store)}
+                  tooltip="View Details"
+                  tooltipOptions={{ position: "top" }}
+                />
+              </div>
+
+              <div className="store-card-body">
+                <div className="store-details">
+                  {store.store_address && (
+                    <div className="store-detail-item">
+                      <i className="pi pi-map-marker"></i>
+                      <span>{store.store_address}</span>
+                    </div>
+                  )}
+                  {store.store_city && (
+                    <div className="store-detail-item">
+                      <i className="pi pi-building"></i>
+                      <span>
+                        {store.store_city}
+                        {store.store_state && `, ${store.store_state}`}
+                      </span>
+                    </div>
+                  )}
+                  {store.store_country && (
+                    <div className="store-detail-item">
+                      <i className="pi pi-globe"></i>
+                      <span>{store.store_country}</span>
+                    </div>
+                  )}
+                  {store.store_pincode && (
+                    <div className="store-detail-item">
+                      <i className="pi pi-tag"></i>
+                      <span>{store.store_pincode}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="store-card-footer">
+                <Button
+                  icon="pi pi-pencil"
+                  label="Edit"
+                  className="p-button-sm p-button-info"
+                  onClick={() => handleEditStore(store)}
+                />
+                <Button
+                  icon="pi pi-trash"
+                  label="Delete"
+                  className="p-button-sm p-button-danger p-button-outlined"
+                  onClick={() => handleDeleteStore(store)}
+                />
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      {!loading && stores.length > 0 && (
+        <div className="mt-4">
+          <Paginator
+            first={currentPage * rowsPerPage}
+            rows={rowsPerPage}
+            totalRecords={totalRecords}
+            rowsPerPageOptions={[10, 20, 50, 100]}
+            onPageChange={(e) => {
+              setCurrentPage(e.page);
+              setRowsPerPage(e.rows);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Add/Edit Store Dialog */}
       <Dialog
-        header={isEditMode ? "Edit Store" : "Add New Store"}
+        header={isEditing ? "Edit Store" : "Add New Store"}
         visible={dialogVisible}
-        style={{ width: "600px" }}
-        onHide={closeDialog}
+        style={{ width: "95vw", maxWidth: "700px" }}
+        onHide={() => setDialogVisible(false)}
+        draggable={false}
+        resizable={false}
+        blockScroll
+        className="store-dialog"
         footer={dialogFooter}
-        modal
       >
         <div className="store-form">
-          <div className="form-field">
-            <label htmlFor="store_name">
-              Store Name <span className="required">*</span>
+          <div className="form-group">
+            <label htmlFor="store_name" className="required">
+              Store Name
             </label>
             <InputText
               id="store_name"
-              value={formData.store_name}
+              value={storeForm.store_name}
               onChange={(e) => handleChange("store_name", e.target.value)}
+              className={formErrors.store_name ? "p-invalid" : ""}
               placeholder="Enter store name"
-              className={errors.store_name ? "p-invalid" : ""}
             />
-            {errors.store_name && (
-              <small className="p-error">{errors.store_name}</small>
+            {formErrors.store_name && (
+              <small className="p-error">{formErrors.store_name}</small>
             )}
           </div>
 
-          <div className="form-field">
-            <label htmlFor="store_address">Store Address</label>
+          <div className="form-group">
+            <label htmlFor="store_address">Address</label>
             <InputText
               id="store_address"
-              value={formData.store_address}
+              value={storeForm.store_address}
               onChange={(e) => handleChange("store_address", e.target.value)}
               placeholder="Enter store address"
             />
           </div>
 
-          <div className="form-grid">
-            <div className="form-field">
+          <div className="form-row">
+            <div className="form-group">
               <label htmlFor="store_city">City</label>
               <InputText
                 id="store_city"
-                value={formData.store_city}
+                value={storeForm.store_city}
                 onChange={(e) => handleChange("store_city", e.target.value)}
                 placeholder="Enter city"
               />
             </div>
 
-            <div className="form-field">
+            <div className="form-group">
               <label htmlFor="store_state">State</label>
               <InputText
                 id="store_state"
-                value={formData.store_state}
+                value={storeForm.store_state}
                 onChange={(e) => handleChange("store_state", e.target.value)}
                 placeholder="Enter state"
               />
             </div>
           </div>
 
-          <div className="form-grid">
-            <div className="form-field">
+          <div className="form-row">
+            <div className="form-group">
               <label htmlFor="store_country">Country</label>
               <InputText
                 id="store_country"
-                value={formData.store_country}
+                value={storeForm.store_country}
                 onChange={(e) => handleChange("store_country", e.target.value)}
                 placeholder="Enter country"
               />
             </div>
 
-            <div className="form-field">
+            <div className="form-group">
               <label htmlFor="store_pincode">Pincode</label>
               <InputText
                 id="store_pincode"
-                value={formData.store_pincode}
+                value={storeForm.store_pincode}
                 onChange={(e) => handleChange("store_pincode", e.target.value)}
                 placeholder="Enter pincode"
               />
             </div>
           </div>
         </div>
+      </Dialog>
+
+      {/* View Store Dialog */}
+      <Dialog
+        header="Store Details"
+        visible={viewDialogVisible}
+        style={{ width: "95vw", maxWidth: "600px" }}
+        onHide={() => setViewDialogVisible(false)}
+        draggable={false}
+        resizable={false}
+      >
+        {viewingStore && (
+          <div className="store-details-view">
+            <div className="detail-row">
+              <span className="detail-label">Store ID:</span>
+              <span className="detail-value">{viewingStore.store_id}</span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">Store Name:</span>
+              <span className="detail-value">{viewingStore.store_name}</span>
+            </div>
+            {viewingStore.store_address && (
+              <div className="detail-row">
+                <span className="detail-label">Address:</span>
+                <span className="detail-value">
+                  {viewingStore.store_address}
+                </span>
+              </div>
+            )}
+            {viewingStore.store_city && (
+              <div className="detail-row">
+                <span className="detail-label">City:</span>
+                <span className="detail-value">{viewingStore.store_city}</span>
+              </div>
+            )}
+            {viewingStore.store_state && (
+              <div className="detail-row">
+                <span className="detail-label">State:</span>
+                <span className="detail-value">{viewingStore.store_state}</span>
+              </div>
+            )}
+            {viewingStore.store_country && (
+              <div className="detail-row">
+                <span className="detail-label">Country:</span>
+                <span className="detail-value">
+                  {viewingStore.store_country}
+                </span>
+              </div>
+            )}
+            {viewingStore.store_pincode && (
+              <div className="detail-row">
+                <span className="detail-label">Pincode:</span>
+                <span className="detail-value">
+                  {viewingStore.store_pincode}
+                </span>
+              </div>
+            )}
+            {viewingStore.created_at && (
+              <div className="detail-row">
+                <span className="detail-label">Created At:</span>
+                <span className="detail-value">
+                  {new Date(viewingStore.created_at).toLocaleString()}
+                </span>
+              </div>
+            )}
+            {viewingStore.updated_at && (
+              <div className="detail-row">
+                <span className="detail-label">Last Updated:</span>
+                <span className="detail-value">
+                  {new Date(viewingStore.updated_at).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </Dialog>
     </div>
   );

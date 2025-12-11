@@ -4,11 +4,13 @@ import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Dialog } from "primereact/dialog";
 import { Toast } from "primereact/toast";
+import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { InputMask } from "primereact/inputmask";
 import { Card } from "primereact/card";
 import { Calendar } from "primereact/calendar";
 import { AutoComplete } from "primereact/autocomplete";
 import { Paginator } from "primereact/paginator";
+import { Chip } from "primereact/chip";
 import api from "../services/api/axios";
 import "../styles/employees.css";
 
@@ -43,6 +45,7 @@ export default function Employees() {
 
   // Employee roles
   const roles = [
+    { label: "Owner", value: "owner" },
     { label: "Admin", value: "admin" },
     { label: "Manager", value: "manager" },
     { label: "Cashier", value: "cashier" },
@@ -62,10 +65,11 @@ export default function Employees() {
     address: "",
     city: "",
     state: "",
-    country: null,
-    role: null,
-    joining_date: null,
+    country: undefined,
+    role: undefined,
+    joining_date: undefined,
     password: "", // Required for creating new employee
+    store_id: undefined, // Store assignment
   });
 
   // Form validation errors (displayed in dialog, not toast)
@@ -79,14 +83,16 @@ export default function Employees() {
   const [currentPage, setCurrentPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [customFieldLabels, setCustomFieldLabels] = useState([]);
+  const [stores, setStores] = useState([]);
 
   const [dialogVisible, setDialogVisible] = useState(false);
   const [viewDialogVisible, setViewDialogVisible] = useState(false);
   const [viewingEmployee, setViewingEmployee] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [filterField, setFilterField] = useState(null);
+  const [filterField, setFilterField] = useState(undefined);
   const [filterValue, setFilterValue] = useState("");
+  const [activeFilters, setActiveFilters] = useState([]);
   const toast = useRef(null);
 
   // Custom Labels state for employee dialog
@@ -152,6 +158,7 @@ export default function Employees() {
       { label: "State", value: "state" },
       { label: "Country", value: "country" },
       { label: "Role", value: "role" },
+      { label: "Store", value: "store_id" },
     ];
 
     // Add custom field labels as filter options from backend
@@ -173,8 +180,7 @@ export default function Employees() {
     async (
       page = currentPage,
       limit = rowsPerPage,
-      searchField = null,
-      searchValue = ""
+      filters = activeFilters
     ) => {
       try {
         setLoading(true);
@@ -182,10 +188,10 @@ export default function Employees() {
 
         // Build URL with query parameters
         let url = `/employees?skip=${skip}&limit=${limit}`;
-        if (searchField && searchValue.trim()) {
-          url += `&filter_field=${encodeURIComponent(
-            searchField
-          )}&filter_value=${encodeURIComponent(searchValue)}`;
+
+        // Use multiple filters if available
+        if (filters && filters.length > 0) {
+          url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
         }
 
         const response = await api.get(url);
@@ -231,7 +237,7 @@ export default function Employees() {
         setLoading(false);
       }
     },
-    [currentPage, rowsPerPage]
+    [currentPage, rowsPerPage, activeFilters]
   );
 
   // Fetch custom field labels from backend (custom_labels table)
@@ -290,18 +296,39 @@ export default function Employees() {
     }
   }, []);
 
+  // Fetch stores from database
+  const fetchStores = useCallback(async () => {
+    try {
+      const response = await api.get("/stores?limit=1000");
+      // Handle both paginated and non-paginated responses
+      const storesData = response.data?.items
+        ? response.data.items
+        : Array.isArray(response.data)
+        ? response.data
+        : [];
+      setStores(storesData);
+      console.log("Fetched stores:", storesData);
+    } catch (error) {
+      console.error("Error fetching stores:", error);
+      setStores([]); // Set empty array on error
+      // Don't show error toast, stores are optional
+    }
+  }, []);
+
   // Load employees and custom field labels on component mount
   useEffect(() => {
     fetchEmployees(currentPage, rowsPerPage);
     fetchCustomFieldLabels();
     // Fetch all custom labels from database to populate dropdowns
     fetchAllCustomLabels();
+    fetchStores();
   }, [
     currentPage,
     rowsPerPage,
     fetchEmployees,
     fetchCustomFieldLabels,
     fetchAllCustomLabels,
+    fetchStores,
   ]);
 
   // Reset form
@@ -319,6 +346,7 @@ export default function Employees() {
       role: null,
       joining_date: null,
       password: "",
+      store_id: null,
     });
     setFormErrors({});
     setIsEditing(false);
@@ -364,6 +392,7 @@ export default function Employees() {
       role: employee.role,
       joining_date: joiningDateObj,
       password: "", // Don't load password when editing
+      store_id: employee.store_id || null,
     });
     setIsEditing(true);
     setEditingId(employee.emp_id);
@@ -387,8 +416,8 @@ export default function Employees() {
     }
   };
 
-  // Delete employee
-  const handleDeleteEmployee = async (emp_id, employeeRole) => {
+  // Delete employee with confirmation
+  const handleDeleteEmployee = (emp_id, employeeRole, employeeName) => {
     // Prevent deletion of owners
     if (employeeRole === "owner") {
       toast.current?.show({
@@ -401,33 +430,41 @@ export default function Employees() {
       return;
     }
 
-    try {
-      setLoading(true);
-      await api.delete(`/employees/${emp_id}`);
+    confirmDialog({
+      message: `Are you sure you want to delete "${employeeName}"?`,
+      header: "Confirm Delete",
+      icon: "pi pi-exclamation-triangle",
+      acceptClassName: "p-button-danger",
+      accept: async () => {
+        try {
+          setLoading(true);
+          await api.delete(`/employees/${emp_id}`);
 
-      toast.current?.show({
-        severity: "success",
-        summary: "Employee Deleted",
-        detail: "Employee has been removed successfully",
-        life: 3000,
-      });
+          toast.current?.show({
+            severity: "success",
+            summary: "Employee Deleted",
+            detail: "Employee has been removed successfully",
+            life: 3000,
+          });
 
-      // Refresh employee list and custom field labels from backend
-      await fetchEmployees();
-      await fetchCustomFieldLabels();
-    } catch (error) {
-      console.error("Error deleting employee:", error);
-      const errorMessage =
-        error.response?.data?.detail || "Failed to delete employee";
-      toast.current?.show({
-        severity: "error",
-        summary: "Error",
-        detail: errorMessage,
-        life: 4000,
-      });
-    } finally {
-      setLoading(false);
-    }
+          // Refresh employee list and custom field labels from backend
+          await fetchEmployees();
+          await fetchCustomFieldLabels();
+        } catch (error) {
+          console.error("Error deleting employee:", error);
+          const errorMessage =
+            error.response?.data?.detail || "Failed to delete employee";
+          toast.current?.show({
+            severity: "error",
+            summary: "Error",
+            detail: errorMessage,
+            life: 4000,
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   // Save employee (add or update)
@@ -435,7 +472,7 @@ export default function Employees() {
     // Reset previous errors
     const errors = {};
 
-    // Mandatory field validation: name, email, phone_number, role
+    // Mandatory field validation: name, email, phone_number, role, store_id
     if (!employeeForm.name?.trim()) {
       errors.name = "Employee name is required";
     }
@@ -456,6 +493,11 @@ export default function Employees() {
 
     if (!employeeForm.role) {
       errors.role = "Role is required";
+    }
+
+    // Store is optional for owner role
+    if (!employeeForm.store_id && employeeForm.role !== "owner") {
+      errors.store_id = "Store is required";
     }
 
     // Password required for new employees
@@ -507,6 +549,11 @@ export default function Employees() {
         joining_date: formattedJoiningDate,
         custom_fields: customFields.length > 0 ? customFields : null,
       };
+
+      // Only include store_id if it has a value (optional for owner role)
+      if (employeeForm.store_id) {
+        employeeData.store_id = employeeForm.store_id;
+      }
 
       console.log("Employee Data being sent:", employeeData);
 
@@ -715,20 +762,67 @@ export default function Employees() {
   // Since backend handles filtering, just use employees directly
   const filteredEmployees = employees;
 
-  // Clear filters
+  // Clear all filters
   const handleClearFilters = () => {
     setFilterField(null);
     setFilterValue("");
-    setCurrentPage(0); // Reset to first page
+    setActiveFilters([]);
+    setCurrentPage(0);
     // Fetch all employees without filters
-    fetchEmployees(0, rowsPerPage, null, "");
+    fetchEmployees(0, rowsPerPage, []);
   };
 
-  // Search handler - only fetch when user clicks search
+  // Remove individual filter
+  const removeFilter = (filterToRemove) => {
+    const updatedFilters = activeFilters.filter(
+      (f) =>
+        !(f.field === filterToRemove.field && f.value === filterToRemove.value)
+    );
+    setActiveFilters(updatedFilters);
+    setCurrentPage(0);
+    fetchEmployees(0, rowsPerPage, updatedFilters);
+  };
+
+  // Get label for filter field
+  const getFilterFieldLabel = (fieldValue) => {
+    const filterOptions = getFilterOptions();
+    const option = filterOptions.find((opt) => opt.value === fieldValue);
+    return option ? option.label : fieldValue;
+  };
+
+  // Search handler - add filter to active filters
   const handleSearch = () => {
     if (filterField && filterValue.trim()) {
-      setCurrentPage(0);
-      fetchEmployees(0, rowsPerPage, filterField, filterValue);
+      let processedValue = filterValue.trim();
+
+      // Strip USR prefix from Employee ID if present
+      if (
+        filterField === "emp_id" &&
+        processedValue.toUpperCase().startsWith("USR")
+      ) {
+        processedValue = processedValue.substring(3);
+      }
+
+      // Check if this exact filter already exists
+      const filterExists = activeFilters.some(
+        (f) => f.field === filterField && f.value === processedValue
+      );
+
+      if (!filterExists) {
+        const newFilter = {
+          field: filterField,
+          value: processedValue,
+          label: getFilterFieldLabel(filterField),
+        };
+        const updatedFilters = [...activeFilters, newFilter];
+        setActiveFilters(updatedFilters);
+        setCurrentPage(0);
+        fetchEmployees(0, rowsPerPage, updatedFilters);
+      }
+
+      // Clear input fields for next filter
+      setFilterField(null);
+      setFilterValue("");
     }
   };
 
@@ -742,7 +836,7 @@ export default function Employees() {
           </div>
           <div className="employee-basic-info">
             <h3 className="employee-name">{employee.name}</h3>
-            <span className="employee-id">ID: {employee.emp_id}</span>
+            <span className="employee-id">User ID: USR{employee.emp_id}</span>
           </div>
           <Button
             icon="pi pi-eye"
@@ -762,6 +856,17 @@ export default function Employees() {
             <div className="employee-info-row">
               <i className="pi pi-briefcase info-icon"></i>
               <span className="info-text role-badge">{employee.role}</span>
+            </div>
+          )}
+          {employee.store_id && (
+            <div className="employee-info-row">
+              <i className="pi pi-building info-icon"></i>
+              <span className="info-text">
+                Store:{" "}
+                {employee.store_name ||
+                  employee.store_id_display ||
+                  employee.store_id}
+              </span>
             </div>
           )}
           {employee.joining_date && (
@@ -787,7 +892,13 @@ export default function Employees() {
             icon="pi pi-trash"
             label="Delete"
             className="p-button-sm p-button-danger p-button-outlined"
-            onClick={() => handleDeleteEmployee(employee.emp_id, employee.role)}
+            onClick={() =>
+              handleDeleteEmployee(
+                employee.emp_id,
+                employee.role,
+                employee.name
+              )
+            }
             disabled={employee.role === "owner"}
             tooltip={
               employee.role === "owner"
@@ -804,6 +915,7 @@ export default function Employees() {
   return (
     <>
       <Toast ref={toast} position="top-right" />
+      <ConfirmDialog />
 
       {/* Add Employee Dialog */}
       <Dialog
@@ -975,6 +1087,34 @@ export default function Employees() {
             />
             {formErrors.role && (
               <small className="text-red-500">{formErrors.role}</small>
+            )}
+          </div>
+
+          {/* Store */}
+          <div className="flex flex-col gap-2">
+            <label htmlFor="emp-store" className="text-[0.85rem] font-semibold">
+              Store{" "}
+              {employeeForm.role === "owner" ? (
+                <span className="text-gray-500">(Optional)</span>
+              ) : (
+                <span className="text-red-500">*</span>
+              )}
+            </label>
+            <Dropdown
+              id="emp-store"
+              value={employeeForm.store_id}
+              options={stores}
+              onChange={(e) => handleChange("store_id", e.value)}
+              optionLabel="store_name"
+              optionValue="id"
+              placeholder="Select store"
+              className="w-full"
+              filter
+              disabled={employeeForm.role === "owner"}
+              emptyMessage="No stores available"
+            />
+            {formErrors.store_id && (
+              <small className="text-red-500">{formErrors.store_id}</small>
             )}
           </div>
 
@@ -1171,7 +1311,7 @@ export default function Employees() {
 
         {/* Filter Section */}
         <div className="filter-section">
-          <div className="filter-controls">
+          <div className="filter-controls filter-column-layout">
             <Dropdown
               value={filterField}
               options={getFilterOptions()}
@@ -1187,7 +1327,9 @@ export default function Employees() {
               value={filterValue}
               onChange={(e) => setFilterValue(e.target.value)}
               placeholder={
-                filterField
+                filterField === "emp_id"
+                  ? "Enter Employee ID (e.g., 1000 or USR1000)"
+                  : filterField
                   ? `Search by ${
                       getFilterOptions().find(
                         (opt) => opt.value === filterField
@@ -1198,21 +1340,41 @@ export default function Employees() {
               className="filter-input"
               disabled={!filterField}
             />
-            <Button
-              icon="pi pi-search"
-              label="Search"
-              className="p-button-primary search-btn"
-              onClick={handleSearch}
-              disabled={!filterField || !filterValue.trim()}
-            />
-            <Button
-              icon="pi pi-times"
-              label="Clear"
-              className="p-button-outlined p-button-secondary clear-filter-btn"
-              onClick={handleClearFilters}
-              disabled={!filterField && !filterValue}
-            />
+            <div className="filter-btn-row">
+              <Button
+                icon="pi pi-search"
+                label="Search"
+                className="p-button-primary search-btn"
+                onClick={handleSearch}
+                disabled={!filterField || !filterValue.trim()}
+              />
+              <Button
+                icon="pi pi-times"
+                label="Clear"
+                className="p-button-outlined p-button-secondary clear-filter-btn"
+                onClick={handleClearFilters}
+                disabled={
+                  activeFilters.length === 0 && !filterField && !filterValue
+                }
+              />
+            </div>
           </div>
+
+          {/* Active Filters Chips */}
+          {activeFilters.length > 0 && (
+            <div className="active-filters-chips">
+              {activeFilters.map((filter, index) => (
+                <Chip
+                  key={`${filter.field}-${index}`}
+                  label={`${filter.label}: ${filter.value}`}
+                  removable
+                  onRemove={() => removeFilter(filter)}
+                  className="filter-chip"
+                />
+              ))}
+            </div>
+          )}
+
           <div className="filter-results">
             <span className="results-count">
               {loading ? (
@@ -1224,7 +1386,6 @@ export default function Employees() {
                   Showing {currentPage * rowsPerPage + 1}-
                   {Math.min((currentPage + 1) * rowsPerPage, totalRecords)} of{" "}
                   {totalRecords} employee(s)
-                  {filterField && filterValue && " (filtered)"}
                 </>
               )}
             </span>
@@ -1304,8 +1465,18 @@ export default function Employees() {
                     User ID: USR{viewingEmployee.emp_id}
                   </p>
                   <p className="text-gray-600">
-                    Business ID: {viewingEmployee.business_id}
+                    Business ID:{" "}
+                    {viewingEmployee.business_id_display ||
+                      `BUS${viewingEmployee.business_id}`}
                   </p>
+                  {viewingEmployee.store_id && (
+                    <p className="text-gray-600">
+                      Store:{" "}
+                      {viewingEmployee.store_name ||
+                        viewingEmployee.store_id_display ||
+                        viewingEmployee.store_id}
+                    </p>
+                  )}
                   {viewingEmployee.role && (
                     <span className="inline-block mt-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
                       {viewingEmployee.role}

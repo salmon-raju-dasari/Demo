@@ -8,7 +8,7 @@ import OwnerRegistration from "./Register/OwnerRegistration";
 import ForgotUsername from "./Login/ForgotUsername";
 import ForgotPassword from "./Login/ForgotPassword";
 import Dashboard from "./components/dashboard";
-import Profile from "./components/Profile";
+import { ProfilePage } from "./components/Profile/ProfilePage";
 import AddProducts from "./components/AddProducts";
 import Employees from "./components/Employees";
 import Business from "./components/Business";
@@ -47,7 +47,7 @@ const RouteConfig = () => {
             requiredRoles={["admin", "owner", "manager", "employee"]}
           >
             <MainLayout>
-              <Profile />
+              <ProfilePage />
             </MainLayout>
           </ProtectedRoute>
         }

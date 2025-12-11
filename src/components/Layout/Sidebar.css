@@ -5,7 +5,7 @@
     left: 0;
     height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     width: 80px;
-    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(180deg, #FF9933 0%, #138808 100%);
     box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     display: flex;
@@ -239,7 +239,7 @@
     }
 
     .sidebar-container:not(.collapsed) {
-        transform: translateX(0);
+        transform: translateX(0) !important;
         width: 280px;
     }
 

@@ -52,6 +52,32 @@ export default function Login() {
       // Store user_id in localStorage for payment tracking
       localStorage.setItem("user_id", userId);
 
+      // Fetch payment status to get expiry time
+      try {
+        const API_BASE_URL =
+          import.meta.env.VITE_API_BASE_URL || "http://192.168.1.2:8000/api";
+        const paymentResponse = await fetch(
+          `${API_BASE_URL}/payment/status/${userId}`
+        );
+        const paymentData = await paymentResponse.json();
+
+        if (paymentData.expires_at) {
+          // Store expiry time for next status check
+          localStorage.setItem(
+            `payment_expires_at_${userId}`,
+            paymentData.expires_at
+          );
+          console.log("Payment expiry stored:", paymentData.expires_at);
+        } else {
+          // No expiry found - clear any existing expiry
+          localStorage.removeItem(`payment_expires_at_${userId}`);
+          console.log("No payment expiry found");
+        }
+      } catch (paymentError) {
+        console.error("Error fetching payment status:", paymentError);
+        // Continue with login even if payment status fetch fails
+      }
+
       // Show success message
       toast.current.show({
         severity: "success",

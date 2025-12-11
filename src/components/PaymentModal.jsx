@@ -6,6 +6,7 @@ import { ProgressSpinner } from "primereact/progressspinner";
 import axios from "axios";
 import { Capacitor } from "@capacitor/core";
 import { Checkout } from "capacitor-razorpay";
+import "./PaymentModal.css";
 
 export default function PaymentModal({
   userId,
@@ -66,6 +67,15 @@ export default function PaymentModal({
       setLoading(true);
       setErrorMessage(""); // Clear previous errors
       setSuccessMessage(""); // Clear previous success messages
+
+      // Validate userId before making payment
+      if (!userId) {
+        setErrorMessage("User ID not found. Please log in again.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Creating payment order for userId:", userId);
 
       // Create order on backend
       const API_BASE_URL =
@@ -340,32 +350,33 @@ export default function PaymentModal({
         closable={false}
         dismissableMask={false}
         closeOnEscape={false}
-        style={{ width: "90vw", maxWidth: "500px" }}
+        className="payment-modal-container"
         blockScroll={true}
       >
-        <div className="flex flex-column align-items-center gap-4 p-4">
+        <div className="payment-content-wrapper">
           {paymentVerifying ? (
-            <>
+            <div className="payment-loading-wrapper">
               <ProgressSpinner />
-              <p className="text-center m-0">Verifying your payment...</p>
-              <p className="text-center text-sm text-600">
+              <p className="payment-loading-text">Verifying your payment...</p>
+              <p className="payment-loading-subtext">
                 Please wait, do not close this window.
               </p>
-            </>
+            </div>
           ) : (
             <>
               <i
-                className={`pi ${isOwner ? "pi-wallet" : "pi-clock"} ${
+                className={`pi ${
+                  isOwner ? "pi-wallet" : "pi-clock"
+                } payment-icon ${
                   isOwner ? "text-blue-500" : "text-orange-500"
                 }`}
-                style={{ fontSize: "4rem" }}
               ></i>
 
-              <div className="text-center">
-                <h3 className="mt-0 mb-2">
+              <div className="payment-text-center">
+                <h3 className="payment-title mt-0 mb-2">
                   {isOwner ? "Registration Fee Required" : "Payment Pending"}
                 </h3>
-                <p className="text-600 mb-3">
+                <p className="payment-description text-600 mb-3">
                   {isOwner
                     ? "To complete your registration and access the application, please pay the one-time registration fee."
                     : message ||
@@ -375,42 +386,42 @@ export default function PaymentModal({
 
               {isOwner && (
                 <>
-                  <div className="surface-100 border-round p-4 w-full">
-                    <div className="flex justify-content-between align-items-center mb-3">
-                      <span className="font-semibold">Registration Fee</span>
-                      <span className="text-2xl font-bold text-blue-600">
-                        ₹1
+                  <div className="payment-fee-display">
+                    <div className="payment-fee-row">
+                      <span className="payment-fee-label">
+                        Registration Fee
                       </span>
+                      <span className="payment-fee-amount">₹1</span>
                     </div>
-                    <p className="text-sm text-600 m-0">
+                    <p className="payment-fee-description">
                       One-time payment for business registration and lifetime
                       access to all features.
                     </p>
                   </div>
 
-                  <div className="w-full">
+                  <div className="payment-button-wrapper">
                     <Button
                       label={
                         loading ? "Processing..." : "Pay Now with Razorpay"
                       }
                       icon="pi pi-credit-card"
-                      className="w-full"
+                      className="payment-button"
                       loading={loading}
                       onClick={handlePayment}
                       size="large"
                     />
                   </div>
 
-                  <div className="surface-50 border-round p-3 w-full">
-                    <p className="text-xs text-600 m-0 text-center">
-                      <i className="pi pi-shield text-green-600 mr-2"></i>
+                  <div className="payment-info-box">
+                    <p className="payment-security-text">
+                      <i className="pi pi-shield text-green-600"></i>
                       Secure payment powered by Razorpay. Your payment details
                       are encrypted and safe.
                     </p>
                   </div>
 
-                  <div className="text-center">
-                    <p className="text-sm text-orange-600 font-semibold m-0">
+                  <div className="payment-warning">
+                    <p className="payment-warning-text">
                       ⚠️ You must complete this payment to access the
                       application
                     </p>
@@ -419,23 +430,20 @@ export default function PaymentModal({
               )}
 
               {!isOwner && (
-                <div className="surface-100 border-round p-4 w-full">
-                  <div className="flex align-items-center gap-3 mb-3">
-                    <i
-                      className="pi pi-info-circle text-orange-600"
-                      style={{ fontSize: "1.5rem" }}
-                    ></i>
+                <div className="payment-non-owner-box">
+                  <div className="payment-non-owner-header">
+                    <i className="pi pi-info-circle payment-non-owner-icon"></i>
                     <div>
-                      <p className="font-semibold m-0 mb-1">
+                      <p className="payment-non-owner-title">
                         Action Required by Owner
                       </p>
-                      <p className="text-sm text-600 m-0">
+                      <p className="payment-non-owner-description">
                         Your business owner needs to complete the one-time
                         registration payment of ₹1.
                       </p>
                     </div>
                   </div>
-                  <p className="text-xs text-600 m-0">
+                  <p className="payment-non-owner-footer">
                     Once the payment is completed, you and all team members will
                     have full access to the application.
                   </p>

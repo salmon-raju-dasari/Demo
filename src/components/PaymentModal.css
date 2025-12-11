@@ -1,0 +1,264 @@
+/* PaymentModal Responsive Styles */
+
+/* Dialog container */
+.payment-modal-container {
+    width: 90vw;
+    max-width: 500px;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .payment-modal-container {
+        width: 95vw;
+        max-width: none;
+    }
+
+    .payment-modal-container .p-dialog-content {
+        padding: 1rem !important;
+    }
+
+    .payment-icon {
+        font-size: 3rem !important;
+    }
+
+    .payment-title {
+        font-size: 1.25rem !important;
+    }
+
+    .payment-description {
+        font-size: 0.875rem !important;
+    }
+
+    .payment-fee-display {
+        padding: 1rem !important;
+    }
+
+    .payment-fee-amount {
+        font-size: 1.5rem !important;
+    }
+
+    .payment-button {
+        width: 100% !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 1rem !important;
+    }
+
+    .payment-info-box {
+        padding: 0.75rem !important;
+    }
+
+    .payment-warning {
+        font-size: 0.875rem !important;
+    }
+}
+
+/* Desktop styles */
+@media (min-width: 769px) {
+    .payment-modal-container {
+        width: 500px;
+    }
+
+    .payment-icon {
+        font-size: 4rem !important;
+    }
+
+    .payment-title {
+        font-size: 1.5rem !important;
+    }
+
+    .payment-description {
+        font-size: 1rem !important;
+    }
+
+    .payment-fee-display {
+        padding: 1.5rem !important;
+    }
+
+    .payment-fee-amount {
+        font-size: 2rem !important;
+    }
+
+    .payment-button {
+        width: 100% !important;
+        padding: 1rem 1.5rem !important;
+        font-size: 1.125rem !important;
+    }
+
+    .payment-info-box {
+        padding: 1rem !important;
+    }
+
+    .payment-warning {
+        font-size: 1rem !important;
+    }
+}
+
+/* Common styles */
+.payment-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem 1rem;
+}
+
+.payment-icon {
+    margin-bottom: 0.5rem;
+}
+
+.payment-text-center {
+    text-align: center;
+    width: 100%;
+}
+
+.payment-fee-display {
+    background-color: var(--surface-100);
+    border-radius: 8px;
+    width: 100%;
+}
+
+.payment-fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.payment-fee-label {
+    font-weight: 600;
+}
+
+.payment-fee-amount {
+    font-weight: 700;
+    color: #3B82F6;
+}
+
+.payment-fee-description {
+    font-size: 0.875rem;
+    color: var(--text-color-secondary);
+    margin: 0;
+}
+
+.payment-button-wrapper {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.payment-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.payment-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.payment-info-box {
+    background-color: var(--surface-50);
+    border-radius: 8px;
+    width: 100%;
+    text-align: center;
+}
+
+.payment-security-text {
+    font-size: 0.75rem;
+    color: var(--text-color-secondary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.payment-warning {
+    text-align: center;
+    width: 100%;
+}
+
+.payment-warning-text {
+    color: #F97316;
+    font-weight: 600;
+    margin: 0;
+}
+
+.payment-non-owner-box {
+    background-color: var(--surface-100);
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 100%;
+}
+
+.payment-non-owner-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.payment-non-owner-icon {
+    font-size: 1.5rem;
+    color: #F97316;
+    flex-shrink: 0;
+}
+
+.payment-non-owner-title {
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.payment-non-owner-description {
+    font-size: 0.875rem;
+    color: var(--text-color-secondary);
+    margin: 0;
+}
+
+.payment-non-owner-footer {
+    font-size: 0.75rem;
+    color: var(--text-color-secondary);
+    margin: 0;
+}
+
+/* Loading spinner wrapper */
+.payment-loading-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem 1rem;
+}
+
+.payment-loading-text {
+    text-align: center;
+    margin: 0;
+}
+
+.payment-loading-subtext {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-color-secondary);
+    margin: 0;
+}
+
+/* Ensure button is always visible */
+.payment-button {
+    visibility: visible !important;
+    display: flex !important;
+    opacity: 1 !important;
+}
+
+/* Fix for PrimeReact Dialog on mobile */
+@media (max-width: 768px) {
+    .payment-modal-container .p-dialog-header {
+        padding: 1rem !important;
+    }
+
+    .payment-modal-container .p-dialog-header-icons {
+        display: flex !important;
+    }
+}

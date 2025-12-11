@@ -3,9 +3,10 @@ import { Avatar } from "primereact/avatar";
 import { Badge } from "primereact/badge";
 import { tokenService } from "../../services/token.service";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Sidebar } from "./Sidebar";
 import PaymentModal from "../PaymentModal";
+import api from "../../services/api/axios";
 import "./MainLayout.css";
 
 export const MainLayout = ({ children }) => {
@@ -13,49 +14,169 @@ export const MainLayout = ({ children }) => {
   const userRole = tokenService.getUserRole();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [userAvatar, setUserAvatar] = useState(null);
   const [userId, setUserId] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
+  const [previousPaymentStatus, setPreviousPaymentStatus] = useState(null);
 
-  // Check payment status on mount
-  useEffect(() => {
-    const checkPaymentStatus = async () => {
-      const currentUserId = localStorage.getItem("user_id");
-      if (currentUserId) {
-        try {
-          const API_BASE_URL =
-            import.meta.env.VITE_API_BASE_URL || "http://192.168.1.2:8000/api";
-          const response = await fetch(
-            `${API_BASE_URL}/payment/status/${currentUserId}`
-          );
-          const data = await response.json();
+  // Function to check payment status only when expiry date is today
+  const checkPaymentStatus = useCallback(async () => {
+    const currentUserId = localStorage.getItem("user_id");
+    const currentUserRole = tokenService.getUserRole();
 
-          if (data.payment_completed) {
-            localStorage.setItem(`payment_completed_${currentUserId}`, "true");
-            setShowPaymentModal(false);
-          } else {
-            console.log("Payment status response:", data);
-            console.log("Is owner:", data.is_owner);
-            setUserId(currentUserId);
-            setIsOwner(data.is_owner);
-            setPaymentMessage(data.message || "");
-            setShowPaymentModal(true);
-          }
-        } catch (error) {
-          console.error("Error checking payment status:", error);
-          const paymentCompleted = localStorage.getItem(
-            `payment_completed_${currentUserId}`
-          );
-          if (!paymentCompleted || paymentCompleted !== "true") {
-            setUserId(currentUserId);
-            setIsOwner(true);
-            setShowPaymentModal(true);
-          }
+    if (!currentUserId) return;
+
+    console.log("Checking payment status");
+
+    try {
+      const API_BASE_URL =
+        import.meta.env.VITE_API_BASE_URL || "http://192.168.1.2:8000/api";
+      const response = await fetch(
+        `${API_BASE_URL}/payment/status/${currentUserId}`
+      );
+      const data = await response.json();
+
+      const currentPaymentStatus = data.payment_completed;
+
+      // Handle expired payment
+      if (data.expired) {
+        console.log("Payment expired - showing modal");
+        localStorage.removeItem(`payment_completed_${currentUserId}`);
+        localStorage.removeItem(`payment_expires_at_${currentUserId}`);
+        setUserId(currentUserId);
+        setIsOwner(data.is_owner || currentUserRole === "owner");
+        setPaymentMessage(data.message || "");
+        setShowPaymentModal(true);
+        setPreviousPaymentStatus(false);
+        return;
+      }
+
+      // Only update if the status has actually changed
+      if (
+        previousPaymentStatus !== null &&
+        previousPaymentStatus !== currentPaymentStatus
+      ) {
+        console.log(
+          `Payment status changed: ${previousPaymentStatus} -> ${currentPaymentStatus}`
+        );
+
+        if (currentPaymentStatus) {
+          // Payment completed (false -> true)
+          localStorage.setItem(`payment_completed_${currentUserId}`, "true");
+          setShowPaymentModal(false);
+        } else {
+          // Payment reverted (true -> false)
+          localStorage.removeItem(`payment_completed_${currentUserId}`);
+          setUserId(currentUserId);
+          setIsOwner(data.is_owner || currentUserRole === "owner");
+          setPaymentMessage(data.message || "");
+          setShowPaymentModal(true);
         }
+      } else if (previousPaymentStatus === null) {
+        // Initial check - set modal based on current status
+        if (currentPaymentStatus) {
+          localStorage.setItem(`payment_completed_${currentUserId}`, "true");
+          setShowPaymentModal(false);
+        } else {
+          console.log("Initial payment check - Payment not completed");
+          setUserId(currentUserId);
+          setIsOwner(data.is_owner || currentUserRole === "owner");
+          setPaymentMessage(data.message || "");
+          setShowPaymentModal(true);
+        }
+      }
+
+      // Update the previous status for next comparison
+      setPreviousPaymentStatus(currentPaymentStatus);
+    } catch (error) {
+      console.error("Error checking payment status:", error);
+      const paymentCompleted = localStorage.getItem(
+        `payment_completed_${currentUserId}`
+      );
+      if (!paymentCompleted || paymentCompleted !== "true") {
+        console.log("Error case - Setting userId to:", currentUserId);
+        setUserId(currentUserId);
+        setIsOwner(currentUserRole === "owner");
+        setShowPaymentModal(true);
+      }
+    }
+  }, [
+    previousPaymentStatus,
+    setUserId,
+    setIsOwner,
+    setPaymentMessage,
+    setShowPaymentModal,
+    setPreviousPaymentStatus,
+  ]); // Check payment status once per day (when expiry date is today)
+  useEffect(() => {
+    // Check on mount
+    checkPaymentStatus();
+
+    // Check once per day at midnight
+    const checkAtMidnight = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+
+      const timeUntilMidnight = tomorrow - now;
+
+      return setTimeout(() => {
+        checkPaymentStatus();
+        // Set up daily interval after first midnight check
+        const dailyInterval = setInterval(
+          checkPaymentStatus,
+          24 * 60 * 60 * 1000
+        );
+        return dailyInterval;
+      }, timeUntilMidnight);
+    };
+
+    const midnightTimeout = checkAtMidnight();
+
+    // Cleanup on unmount
+    return () => {
+      clearTimeout(midnightTimeout);
+    };
+  }, [checkPaymentStatus]);
+
+  // Load avatar from localStorage and fetch from DB
+  useEffect(() => {
+    const loadAvatar = async () => {
+      try {
+        // Fetch avatar from database
+        const response = await api.get("/employees/me");
+        if (response.data.avatar_base64) {
+          const avatarDataUrl = `data:image/png;base64,${response.data.avatar_base64}`;
+          setUserAvatar(avatarDataUrl);
+          localStorage.setItem("user_avatar", avatarDataUrl);
+        } else {
+          // Fallback to localStorage if no avatar in DB
+          const avatar = localStorage.getItem("user_avatar");
+          setUserAvatar(avatar);
+        }
+      } catch (error) {
+        console.error("Error loading avatar:", error);
+        // Fallback to localStorage on error
+        const avatar = localStorage.getItem("user_avatar");
+        setUserAvatar(avatar);
       }
     };
 
-    checkPaymentStatus();
+    // Load on mount
+    loadAvatar();
+
+    // Listen for storage changes (when avatar is uploaded)
+    const handleStorageChange = () => {
+      loadAvatar();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -72,11 +193,6 @@ export const MainLayout = ({ children }) => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const handleLogout = () => {
-    tokenService.clearTokens();
-    navigate("/login");
-  };
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
@@ -136,22 +252,16 @@ export const MainLayout = ({ children }) => {
               <Badge value="3" severity="danger" />
             </Button>
 
-            <div className="user-profile">
+            <div className="user-profile" onClick={() => navigate("/profile")}>
               <Avatar
-                icon="pi pi-user"
+                image={userAvatar}
+                icon={!userAvatar ? "pi pi-user" : null}
                 shape="circle"
                 size="large"
                 style={{ backgroundColor: "#667eea", color: "#ffffff" }}
               />
               <span className="user-role">{userRole || "User"}</span>
             </div>
-
-            <Button
-              icon="pi pi-sign-out"
-              label="Logout"
-              className="p-button-outlined p-button-danger logout-btn"
-              onClick={handleLogout}
-            />
           </div>
         </div>
 

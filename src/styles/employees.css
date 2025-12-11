@@ -1,7 +1,6 @@
 /* Employee Management Styles */
 
 .employees-container {
-    padding: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
 }
@@ -28,6 +27,8 @@
 
 /* Filter Section */
 .filter-section {
+    display: flex;
+    flex-direction: column;
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -38,10 +39,60 @@
 
 .filter-controls {
     display: flex;
+    width: 100%;
     gap: 1rem;
     flex-wrap: wrap;
     margin-bottom: 1rem;
     align-items: center;
+}
+
+/* Filter Column Layout */
+.filter-controls.filter-column-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+    margin-bottom: 0;
+}
+
+.filter-btn-row {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.filter-btn-row .search-btn,
+.filter-btn-row .clear-filter-btn {
+    flex: 1 1 50%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+@media (max-width: 900px) {
+    .filter-btn-row {
+        flex-direction: row;
+        gap: 0.75rem;
+    }
+
+    .filter-btn-row .search-btn,
+    .filter-btn-row .clear-filter-btn {
+        flex: 1 1 50%;
+        min-width: 0;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 767px) {
+    .filter-btn-row {
+        flex-direction: row;
+        gap: 0.75rem;
+    }
+
+    .filter-btn-row .search-btn,
+    .filter-btn-row .clear-filter-btn {
+        flex: 1 1 50%;
+        min-width: 0;
+        max-width: 100%;
+    }
 }
 
 .filter-dropdown {
@@ -67,6 +118,7 @@
     justify-content: space-between;
     align-items: center;
     padding-top: 0.75rem;
+    width: 100%;
     border-top: 1px solid #e9ecef;
 }
 
@@ -74,6 +126,37 @@
     font-size: 0.9rem;
     color: #6c757d;
     font-weight: 600;
+}
+
+/* Active Filter Chips */
+.active-filters-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+    margin-top: 0.5rem;
+}
+
+.filter-chip {
+    background-color: #e3f2fd !important;
+    color: #1976d2 !important;
+    border: 1px solid #90caf9;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.filter-chip .p-chip-text {
+    font-size: 0.85rem;
+}
+
+.filter-chip .p-chip-remove-icon {
+    color: #1976d2;
+    font-size: 0.9rem;
+    margin-left: 0.4rem;
+}
+
+.filter-chip .p-chip-remove-icon:hover {
+    color: #d32f2f;
 }
 
 /* Grid Layout */
@@ -116,7 +199,7 @@
     align-items: center;
     gap: 1rem;
     padding: 1.25rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #FF9933 0%, #138808 100%);
     color: white;
 }
 
@@ -184,7 +267,7 @@
 }
 
 .role-badge {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #FF9933 0%, #138808 100%);
     color: white;
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
@@ -298,9 +381,6 @@
 
 /* Small/Mobile screens - 1 column */
 @media (max-width: 767px) {
-    .employees-container {
-        padding: 1rem;
-    }
 
     .employees-header {
         flex-direction: column;
@@ -521,18 +601,18 @@
 
 /* Active/Selected Page */
 .p-paginator .p-paginator-page.p-highlight {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    border-color: #2563eb;
+    background: linear-gradient(135deg, #FF9933 0%, #138808 100%);
+    border-color: #138808;
     color: #ffffff !important;
     font-weight: 600;
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 2px 6px rgba(255, 153, 51, 0.3);
 }
 
 .p-paginator .p-paginator-page.p-highlight:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    border-color: #1d4ed8;
+    background: linear-gradient(135deg, #138808 0%, #0d5c06 100%);
+    border-color: #0d5c06;
     transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 3px 8px rgba(19, 136, 8, 0.4);
 }
 
 /* Current Page Info Text */
@@ -702,5 +782,21 @@
     .p-paginator .p-dropdown {
         width: 100%;
         max-width: 150px;
+    }
+}
+
+/* Confirm Dialog Styling */
+.p-confirm-dialog {
+    width: 95vw !important;
+    max-width: 450px !important;
+}
+
+.p-confirm-dialog .p-dialog-content {
+    padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .p-confirm-dialog {
+        max-width: 90vw !important;
     }
 }

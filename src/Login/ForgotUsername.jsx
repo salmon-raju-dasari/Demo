@@ -45,7 +45,11 @@ export default function ForgotUsername() {
 
       // Add business_id if provided
       if (businessId && businessId.trim()) {
-        requestData.business_id = parseInt(businessId.trim());
+        // Strip BUS prefix if present
+        const numericId = businessId.replace(/^BUS/i, "").trim();
+        if (numericId) {
+          requestData.business_id = parseInt(numericId);
+        }
       }
 
       await api.post("/employees/forgot-username-otp", requestData);
@@ -119,16 +123,26 @@ export default function ForgotUsername() {
               <InputText
                 id="businessId"
                 type="text"
-                placeholder="Enter Business ID (if known)"
+                placeholder="Enter Business ID (e.g., BUS20001)"
                 className="w-full"
                 value={businessId}
-                onChange={(e) =>
-                  setBusinessId(e.target.value.replace(/\D/g, ""))
-                }
+                onChange={(e) => {
+                  const value = e.target.value.toUpperCase();
+                  // Allow BUS prefix or just numbers
+                  if (
+                    value === "" ||
+                    value === "BUS" ||
+                    /^BUS\d*$/.test(value) ||
+                    /^\d+$/.test(value)
+                  ) {
+                    setBusinessId(value);
+                  }
+                }}
                 onKeyPress={handleKeyPress}
               />
               <small className="block mt-1 text-600">
-                Enter Business ID to get User ID for a specific business only
+                Enter Business ID (e.g., BUS20001) to get User ID for a specific
+                business only
               </small>
             </div>
 
