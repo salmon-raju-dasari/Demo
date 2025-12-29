@@ -153,9 +153,13 @@ export default function Business() {
       formDataRef.current = updated; // Update ref immediately
       return updated;
     });
-    // Clear error for this field when user types
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+    // Remove error for this field as soon as user starts entering/selecting value
+    if (value !== null && value !== "" && value !== undefined) {
+      setErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
     }
   };
 

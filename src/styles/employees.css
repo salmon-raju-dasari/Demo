@@ -135,6 +135,7 @@
     gap: 0.5rem;
     padding: 0.75rem 0;
     margin-top: 0.5rem;
+    align-self: self-start;
 }
 
 .filter-chip {
@@ -162,13 +163,33 @@
 /* Grid Layout */
 .employees-grid-wrapper {
     background: transparent;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.employees-grid-wrapper .empty-state {
+    flex: 1;
+    width: 100%;
+    min-height: 400px;
 }
 
 .employees-grid {
     display: grid;
+    /* Responsive grid: cards maintain 320px minimum width, matching store management */
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
     padding: 0.5rem 0;
+    width: 100%;
+    min-height: 400px;
+}
+
+/* Ensure grid and container don't cause horizontal overflow */
+.employees-container,
+.employees-grid-wrapper,
+.employees-grid {
+    box-sizing: border-box;
+    width: 100%;
 }
 
 /* Employee Card */
@@ -219,6 +240,7 @@
 .employee-basic-info {
     flex: 1;
     min-width: 0;
+    /* allow shrinking inside header */
 }
 
 .employee-name {
@@ -229,6 +251,17 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    /* allow flex children to shrink, enable ellipsis */
+}
+
+/* keep overflow hidden so children are clipped when needed */
+.employee-basic-info {
+    overflow: hidden;
+    min-width: 0;
+    /* critical for flex shrinking */
 }
 
 .employee-id {
@@ -365,26 +398,18 @@
 }
 
 /* Responsive Design */
-/* Large screens - 3 columns */
-@media (min-width: 1200px) {
-    .employees-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-/* Medium screens - 2 columns */
-@media (min-width: 768px) and (max-width: 1199px) {
-    .employees-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-/* Small/Mobile screens - 1 column */
+/* Grid naturally adapts with auto-fit; no need for fixed column counts */
 @media (max-width: 767px) {
+    .employees-container {
+        max-width: 100%;
+        padding: 0 0.75rem;
+        overflow-x: hidden;
+    }
 
     .employees-header {
         flex-direction: column;
         align-items: stretch;
+        padding: 0;
     }
 
     .employees-header h2 {
@@ -396,8 +421,7 @@
     }
 
     .employees-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+        gap: 0.75rem;
     }
 
     .filter-controls {
@@ -473,14 +497,55 @@
     }
 }
 
-/* Very small screens */
+/* Very small screens - use responsive grid, avoid fixed columns */
 @media (max-width: 480px) {
+    .employees-container {
+        max-width: 100%;
+        padding: 0 0.5rem;
+        overflow-x: hidden;
+    }
+
     .employees-grid {
-        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        padding: 0;
     }
 
     .employee-info-row {
         font-size: 0.8rem;
+    }
+
+    .employee-card-header {
+        padding: 0.875rem;
+    }
+
+    .employee-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+
+    .employee-name {
+        font-size: 0.95rem;
+        max-width: 100%;
+    }
+
+    .employee-id {
+        font-size: 0.7rem;
+    }
+
+    .employee-card-body {
+        padding: 0.875rem;
+        gap: 0.5rem;
+    }
+
+    .employee-card-actions {
+        padding: 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .employee-card-actions .p-button {
+        padding: 0.4rem 0.5rem !important;
+        font-size: 0.75rem !important;
     }
 }
 

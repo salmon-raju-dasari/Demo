@@ -4,41 +4,62 @@ import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Toast } from "primereact/toast";
 import { Card } from "primereact/card";
+import { TabMenu } from "primereact/tabmenu";
 import { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
 import api from "../services/api/axios";
 import "./CustomLabelManagement.css";
 
 /**
  * Custom Label Management Component
- * Manage custom labels and their predefined values
- * Optimized for all screen sizes with dropdown-based interface
+ * Manage custom labels for Products and Employees
+ * Two separate tabs for better organization
  */
 export default function CustomLabelManagement() {
-  const [customLabels, setCustomLabels] = useState([]);
+  const [activeTab, setActiveTab] = useState(0);
+
+  const tabItems = [
+    { label: "Product Labels", icon: "pi pi-box" },
+    { label: "Employee Labels", icon: "pi pi-users" },
+  ];
+
+  // Product Labels State
+  const [productLabels, setProductLabels] = useState([]);
+  const [selectedProductLabelName, setSelectedProductLabelName] =
+    useState(null);
+  const [selectedProductLabelData, setSelectedProductLabelData] =
+    useState(null);
+  const [productLabelValues, setProductLabelValues] = useState([]);
+  const [isEditingProductName, setIsEditingProductName] = useState(false);
+  const [editedProductLabelName, setEditedProductLabelName] = useState("");
+  const [isCreatingNewProductLabel, setIsCreatingNewProductLabel] =
+    useState(false);
+  const [newProductLabelName, setNewProductLabelName] = useState("");
+
+  // Employee Labels State
+  const [employeeLabels, setEmployeeLabels] = useState([]);
+  const [selectedEmployeeLabelName, setSelectedEmployeeLabelName] =
+    useState(null);
+  const [selectedEmployeeLabelData, setSelectedEmployeeLabelData] =
+    useState(null);
+  const [employeeLabelValues, setEmployeeLabelValues] = useState([]);
+  const [isEditingEmployeeName, setIsEditingEmployeeName] = useState(false);
+  const [editedEmployeeLabelName, setEditedEmployeeLabelName] = useState("");
+  const [isCreatingNewEmployeeLabel, setIsCreatingNewEmployeeLabel] =
+    useState(false);
+  const [newEmployeeLabelName, setNewEmployeeLabelName] = useState("");
+
   const [saveLoading, setSaveLoading] = useState(false);
-
-  // Selected label state
-  const [selectedLabelName, setSelectedLabelName] = useState(null);
-  const [selectedLabelData, setSelectedLabelData] = useState(null);
-
-  // Label values state (for editing)
-  const [labelValues, setLabelValues] = useState([]);
-
-  // Label name editing
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedLabelName, setEditedLabelName] = useState("");
-
-  // New label creation state
-  const [isCreatingNewLabel, setIsCreatingNewLabel] = useState(false);
-  const [newLabelName, setNewLabelName] = useState("");
-
   const toast = useRef(null);
 
   // Fetch all custom labels
   const fetchCustomLabels = useCallback(async () => {
     try {
       const response = await api.get("/custom-labels");
-      setCustomLabels(response.data || []);
+      const labels = response.data || [];
+
+      // Separate by label_type
+      setProductLabels(labels.filter((l) => l.label_type === "product"));
+      setEmployeeLabels(labels.filter((l) => l.label_type === "employee"));
     } catch (error) {
       console.error("Error fetching custom labels:", error);
       toast.current?.show({
@@ -54,54 +75,94 @@ export default function CustomLabelManagement() {
     fetchCustomLabels();
   }, [fetchCustomLabels]);
 
-  // Handle label selection from dropdown
-  const handleLabelSelect = (labelName) => {
+  // PRODUCT LABEL HANDLERS
+  const handleProductLabelSelect = (labelName) => {
     if (!labelName) {
-      // Clear selection
-      setSelectedLabelName(null);
-      setSelectedLabelData(null);
-      setLabelValues([]);
-      setEditedLabelName("");
-      setIsEditingName(false);
+      setSelectedProductLabelName(null);
+      setSelectedProductLabelData(null);
+      setProductLabelValues([]);
+      setEditedProductLabelName("");
+      setIsEditingProductName(false);
       return;
     }
 
-    const labelData = customLabels.find((l) => l.label_name === labelName);
+    const labelData = productLabels.find((l) => l.label_name === labelName);
     if (labelData) {
-      setSelectedLabelName(labelName);
-      setSelectedLabelData(labelData);
-      setLabelValues(labelData.label_values || []);
-      setEditedLabelName(labelData.label_name);
-      setIsEditingName(false);
-      setIsCreatingNewLabel(false);
-      setNewLabelName("");
+      setSelectedProductLabelName(labelName);
+      setSelectedProductLabelData(labelData);
+      setProductLabelValues(labelData.label_values || []);
+      setEditedProductLabelName(labelData.label_name);
+      setIsEditingProductName(false);
+      setIsCreatingNewProductLabel(false);
+      setNewProductLabelName("");
     }
   };
 
-  // Handle creating a new label
-  const handleCreateNewLabel = () => {
-    setIsCreatingNewLabel(true);
-    setSelectedLabelName(null);
-    setSelectedLabelData(null);
-    setLabelValues([""]);
-    setNewLabelName("");
-    setIsEditingName(false);
-    setEditedLabelName("");
+  const handleCreateNewProductLabel = () => {
+    setIsCreatingNewProductLabel(true);
+    setSelectedProductLabelName(null);
+    setSelectedProductLabelData(null);
+    setProductLabelValues([""]);
+    setNewProductLabelName("");
+    setIsEditingProductName(false);
+    setEditedProductLabelName("");
   };
 
-  // Add new value field
-  const handleAddValue = () => {
-    setLabelValues((prev) => [...prev, ""]);
+  const handleAddProductValue = () => {
+    setProductLabelValues((prev) => [...prev, ""]);
   };
 
-  // Update value at index
-  const handleValueChange = (index, value) => {
-    setLabelValues((prev) => prev.map((v, i) => (i === index ? value : v)));
+  const handleProductValueChange = (index, value) => {
+    setProductLabelValues((prev) =>
+      prev.map((v, i) => (i === index ? value : v))
+    );
   };
 
-  // Remove value at index
-  const handleRemoveValue = (index) => {
-    if (labelValues.length === 1) {
+  // EMPLOYEE LABEL HANDLERS
+  const handleEmployeeLabelSelect = (labelName) => {
+    if (!labelName) {
+      setSelectedEmployeeLabelName(null);
+      setSelectedEmployeeLabelData(null);
+      setEmployeeLabelValues([]);
+      setEditedEmployeeLabelName("");
+      setIsEditingEmployeeName(false);
+      return;
+    }
+
+    const labelData = employeeLabels.find((l) => l.label_name === labelName);
+    if (labelData) {
+      setSelectedEmployeeLabelName(labelName);
+      setSelectedEmployeeLabelData(labelData);
+      setEmployeeLabelValues(labelData.label_values || []);
+      setEditedEmployeeLabelName(labelData.label_name);
+      setIsEditingEmployeeName(false);
+      setIsCreatingNewEmployeeLabel(false);
+      setNewEmployeeLabelName("");
+    }
+  };
+
+  const handleCreateNewEmployeeLabel = () => {
+    setIsCreatingNewEmployeeLabel(true);
+    setSelectedEmployeeLabelName(null);
+    setSelectedEmployeeLabelData(null);
+    setEmployeeLabelValues([""]);
+    setNewEmployeeLabelName("");
+    setIsEditingEmployeeName(false);
+    setEditedEmployeeLabelName("");
+  };
+
+  const handleAddEmployeeValue = () => {
+    setEmployeeLabelValues((prev) => [...prev, ""]);
+  };
+
+  const handleEmployeeValueChange = (index, value) => {
+    setEmployeeLabelValues((prev) =>
+      prev.map((v, i) => (i === index ? value : v))
+    );
+  };
+
+  const handleRemoveProductValue = (index) => {
+    if (productLabelValues.length === 1) {
       toast.current?.show({
         severity: "warn",
         summary: "Cannot Remove",
@@ -110,17 +171,30 @@ export default function CustomLabelManagement() {
       });
       return;
     }
-    setLabelValues((prev) => prev.filter((_, i) => i !== index));
+    setProductLabelValues((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Save label (create or update)
-  const handleSaveLabel = async () => {
-    const labelNameToSave = isCreatingNewLabel
-      ? newLabelName.trim()
-      : isEditingName
-      ? editedLabelName.trim()
-      : selectedLabelData?.label_name;
-    const validValues = labelValues
+  const handleRemoveEmployeeValue = (index) => {
+    if (employeeLabelValues.length === 1) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Cannot Remove",
+        detail: "At least one value is required.",
+        life: 3000,
+      });
+      return;
+    }
+    setEmployeeLabelValues((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Save Product Label
+  const handleSaveProductLabel = async () => {
+    const labelNameToSave = isCreatingNewProductLabel
+      ? newProductLabelName.trim()
+      : isEditingProductName
+      ? editedProductLabelName.trim()
+      : selectedProductLabelData?.label_name;
+    const validValues = productLabelValues
       .filter((v) => v.trim())
       .map((v) => v.trim());
 
@@ -150,64 +224,59 @@ export default function CustomLabelManagement() {
       const labelData = {
         label_name: labelNameToSave,
         label_values: validValues,
+        label_type: "product",
       };
 
-      if (isCreatingNewLabel) {
-        // Create new label
+      if (isCreatingNewProductLabel) {
         await api.post("/custom-labels", labelData);
-
         toast.current?.show({
           severity: "success",
           summary: "Label Created",
-          detail: `Label "${labelNameToSave}" has been created successfully`,
+          detail: `Product label "${labelNameToSave}" has been created successfully`,
           life: 3000,
         });
       } else {
-        // Update existing label
-        await api.put(`/custom-labels/${selectedLabelData.id}`, labelData);
-
+        await api.put(
+          `/custom-labels/${selectedProductLabelData.id}`,
+          labelData
+        );
         toast.current?.show({
           severity: "success",
           summary: "Label Updated",
-          detail: `Label "${labelNameToSave}" has been updated successfully`,
+          detail: `Product label "${labelNameToSave}" has been updated successfully`,
           life: 3000,
         });
       }
 
       await fetchCustomLabels();
 
-      // Refresh the selected label data
-      if (!isCreatingNewLabel) {
-        // After update, re-fetch to get the updated label
+      if (!isCreatingNewProductLabel) {
         setTimeout(async () => {
           const response = await api.get("/custom-labels");
           const updatedLabel = response.data.find(
-            (l) => l.id === selectedLabelData.id
+            (l) => l.id === selectedProductLabelData.id
           );
           if (updatedLabel) {
-            setSelectedLabelName(updatedLabel.label_name);
-            setSelectedLabelData(updatedLabel);
-            setLabelValues(updatedLabel.label_values || []);
-            setEditedLabelName(updatedLabel.label_name);
-            setIsEditingName(false);
+            setSelectedProductLabelName(updatedLabel.label_name);
+            setSelectedProductLabelData(updatedLabel);
+            setProductLabelValues(updatedLabel.label_values || []);
+            setEditedProductLabelName(updatedLabel.label_name);
+            setIsEditingProductName(false);
           }
         }, 300);
       } else {
-        // After creation, reset to selection screen
-        setIsCreatingNewLabel(false);
-        setNewLabelName("");
-        setLabelValues([]);
-        setSelectedLabelName(null);
-        setSelectedLabelData(null);
+        setIsCreatingNewProductLabel(false);
+        setNewProductLabelName("");
+        setProductLabelValues([]);
+        setSelectedProductLabelName(null);
+        setSelectedProductLabelData(null);
       }
     } catch (error) {
-      console.error("Error saving label:", error);
-      const errorMessage =
-        error.response?.data?.detail || "Failed to save label";
+      console.error("Error saving product label:", error);
       toast.current?.show({
         severity: "error",
         summary: "Error",
-        detail: errorMessage,
+        detail: error.response?.data?.detail || "Failed to save product label",
         life: 4000,
       });
     } finally {
@@ -215,40 +284,133 @@ export default function CustomLabelManagement() {
     }
   };
 
-  // Delete current label
-  const handleDeleteLabel = () => {
-    if (!selectedLabelData) return;
+  // Save Employee Label
+  const handleSaveEmployeeLabel = async () => {
+    const labelNameToSave = isCreatingNewEmployeeLabel
+      ? newEmployeeLabelName.trim()
+      : isEditingEmployeeName
+      ? editedEmployeeLabelName.trim()
+      : selectedEmployeeLabelData?.label_name;
+    const validValues = employeeLabelValues
+      .filter((v) => v.trim())
+      .map((v) => v.trim());
+
+    if (!labelNameToSave) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Invalid Input",
+        detail: "Please enter a label name.",
+        life: 3000,
+      });
+      return;
+    }
+
+    if (validValues.length === 0) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Invalid Input",
+        detail: "Please add at least one label value.",
+        life: 3000,
+      });
+      return;
+    }
+
+    try {
+      setSaveLoading(true);
+
+      const labelData = {
+        label_name: labelNameToSave,
+        label_values: validValues,
+        label_type: "employee",
+      };
+
+      if (isCreatingNewEmployeeLabel) {
+        await api.post("/custom-labels", labelData);
+        toast.current?.show({
+          severity: "success",
+          summary: "Label Created",
+          detail: `Employee label "${labelNameToSave}" has been created successfully`,
+          life: 3000,
+        });
+      } else {
+        await api.put(
+          `/custom-labels/${selectedEmployeeLabelData.id}`,
+          labelData
+        );
+        toast.current?.show({
+          severity: "success",
+          summary: "Label Updated",
+          detail: `Employee label "${labelNameToSave}" has been updated successfully`,
+          life: 3000,
+        });
+      }
+
+      await fetchCustomLabels();
+
+      if (!isCreatingNewEmployeeLabel) {
+        setTimeout(async () => {
+          const response = await api.get("/custom-labels");
+          const updatedLabel = response.data.find(
+            (l) => l.id === selectedEmployeeLabelData.id
+          );
+          if (updatedLabel) {
+            setSelectedEmployeeLabelName(updatedLabel.label_name);
+            setSelectedEmployeeLabelData(updatedLabel);
+            setEmployeeLabelValues(updatedLabel.label_values || []);
+            setEditedEmployeeLabelName(updatedLabel.label_name);
+            setIsEditingEmployeeName(false);
+          }
+        }, 300);
+      } else {
+        setIsCreatingNewEmployeeLabel(false);
+        setNewEmployeeLabelName("");
+        setEmployeeLabelValues([]);
+        setSelectedEmployeeLabelName(null);
+        setSelectedEmployeeLabelData(null);
+      }
+    } catch (error) {
+      console.error("Error saving employee label:", error);
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: error.response?.data?.detail || "Failed to save employee label",
+        life: 4000,
+      });
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  // Delete Product Label
+  const handleDeleteProductLabel = () => {
+    if (!selectedProductLabelData) return;
 
     confirmDialog({
-      message: `Are you sure you want to delete the label "${selectedLabelData.label_name}"? This action cannot be undone.`,
+      message: `Are you sure you want to delete the product label "${selectedProductLabelData.label_name}"? This action cannot be undone.`,
       header: "Confirm Deletion",
       icon: "pi pi-exclamation-triangle",
       contentStyle: { width: "95vw", maxWidth: "600px" },
       accept: async () => {
         try {
-          await api.delete(`/custom-labels/${selectedLabelData.id}`);
-
+          await api.delete(`/custom-labels/${selectedProductLabelData.id}`);
           toast.current?.show({
             severity: "success",
             summary: "Label Deleted",
-            detail: `Label "${selectedLabelData.label_name}" has been deleted successfully`,
+            detail: `Product label "${selectedProductLabelData.label_name}" has been deleted successfully`,
             life: 3000,
           });
 
-          // Reset selection
-          setSelectedLabelName(null);
-          setSelectedLabelData(null);
-          setLabelValues([]);
-
+          setSelectedProductLabelName(null);
+          setSelectedProductLabelData(null);
+          setProductLabelValues([]);
           await fetchCustomLabels();
         } catch (error) {
-          console.error("Error deleting label:", error);
-          const errorMessage =
-            error.response?.data?.detail || "Failed to delete label";
+          console.error("Error deleting product label:", error);
           toast.current?.show({
             severity: "error",
             summary: "Error",
-            detail: errorMessage,
+            detail:
+              error.response?.data?.detail || "Failed to delete product label",
             life: 4000,
           });
         }
@@ -256,53 +418,118 @@ export default function CustomLabelManagement() {
     });
   };
 
-  // Cancel new label creation
-  const handleCancelNewLabel = () => {
-    setIsCreatingNewLabel(false);
-    setNewLabelName("");
-    setLabelValues([]);
-    setSelectedLabelName(null);
-    setSelectedLabelData(null);
-    setIsEditingName(false);
-    setEditedLabelName("");
+  // Delete Employee Label
+  const handleDeleteEmployeeLabel = () => {
+    if (!selectedEmployeeLabelData) return;
+
+    confirmDialog({
+      message: `Are you sure you want to delete the employee label "${selectedEmployeeLabelData.label_name}"? This action cannot be undone.`,
+      header: "Confirm Deletion",
+      icon: "pi pi-exclamation-triangle",
+      contentStyle: { width: "95vw", maxWidth: "600px" },
+      accept: async () => {
+        try {
+          await api.delete(`/custom-labels/${selectedEmployeeLabelData.id}`);
+          toast.current?.show({
+            severity: "success",
+            summary: "Label Deleted",
+            detail: `Employee label "${selectedEmployeeLabelData.label_name}" has been deleted successfully`,
+            life: 3000,
+          });
+
+          setSelectedEmployeeLabelName(null);
+          setSelectedEmployeeLabelData(null);
+          setEmployeeLabelValues([]);
+          await fetchCustomLabels();
+        } catch (error) {
+          console.error("Error deleting employee label:", error);
+          toast.current?.show({
+            severity: "error",
+            summary: "Error",
+            detail:
+              error.response?.data?.detail || "Failed to delete employee label",
+            life: 4000,
+          });
+        }
+      },
+    });
+  };
+
+  // Cancel Product Label Creation
+  const handleCancelNewProductLabel = () => {
+    setIsCreatingNewProductLabel(false);
+    setNewProductLabelName("");
+    setProductLabelValues([]);
+    setSelectedProductLabelName(null);
+    setSelectedProductLabelData(null);
+    setIsEditingProductName(false);
+    setEditedProductLabelName("");
+  };
+
+  // Cancel Employee Label Creation
+  const handleCancelNewEmployeeLabel = () => {
+    setIsCreatingNewEmployeeLabel(false);
+    setNewEmployeeLabelName("");
+    setEmployeeLabelValues([]);
+    setSelectedEmployeeLabelName(null);
+    setSelectedEmployeeLabelData(null);
+    setIsEditingEmployeeName(false);
+    setEditedEmployeeLabelName("");
   };
 
   // Get label options for dropdown
-  const labelOptions = customLabels.map((label) => ({
+  const productLabelOptions = productLabels.map((label) => ({
     label: label.label_name,
     value: label.label_name,
   }));
 
-  return (
-    <>
-      <Toast ref={toast} position="top-right" />
-      <ConfirmDialog />
+  const employeeLabelOptions = employeeLabels.map((label) => ({
+    label: label.label_name,
+    value: label.label_name,
+  }));
 
-      {/* Main Screen */}
-      <div className="custom-label-main-container">
-        <div className="mb-4 sm:mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Custom Label Management
-          </h2>
-          <p className="text-gray-600 text-sm">
-            Define custom labels and their predefined values for employee
-            records
-          </p>
-        </div>
+  // Render function for label management UI (reusable for both tabs)
+  const renderLabelManagementUI = (
+    labelType,
+    labels,
+    selectedLabelName,
+    selectedLabelData,
+    labelValues,
+    isCreatingNewLabel,
+    newLabelName,
+    isEditingName,
+    editedLabelName,
+    labelOptions,
+    handleLabelSelect,
+    handleCreateNewLabel,
+    handleCancelNewLabel,
+    setNewLabelName,
+    setEditedLabelName,
+    handleSaveLabel,
+    handleDeleteLabel,
+    setIsEditingName,
+    handleValueChange,
+    handleRemoveValue,
+    handleAddValue
+  ) => {
+    const isProduct = labelType === "product";
+    const typeLabel = isProduct ? "Product" : "Employee";
 
+    return (
+      <>
         {/* Label Selector Section */}
         <Card className="mb-4">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
               <div className="flex-1">
                 <label className="block text-sm font-semibold mb-2">
-                  Select Label to Manage
+                  Select {typeLabel} Label to Manage
                 </label>
                 <Dropdown
                   value={selectedLabelName}
                   options={labelOptions}
                   onChange={(e) => handleLabelSelect(e.value)}
-                  placeholder="Choose a custom label"
+                  placeholder={`Choose a ${labelType} label`}
                   filter
                   showClear
                   className="w-full"
@@ -326,7 +553,7 @@ export default function CustomLabelManagement() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-gray-800">
-                  Create New Label
+                  Create New {typeLabel} Label
                 </h3>
                 <Button
                   icon="pi pi-times"
@@ -345,12 +572,15 @@ export default function CustomLabelManagement() {
                 <InputText
                   value={newLabelName}
                   onChange={(e) => setNewLabelName(e.target.value)}
-                  placeholder="e.g., Shirt Size, Blood Group, Department"
+                  placeholder={
+                    isProduct
+                      ? "e.g., Size, Color, Material"
+                      : "e.g., Blood Group, Department"
+                  }
                   className="w-full"
                 />
                 <small className="text-gray-600">
-                  This will appear as a dropdown option when adding employee
-                  custom fields
+                  This will appear as an option when managing {labelType}s
                 </small>
               </div>
             </div>
@@ -365,7 +595,7 @@ export default function CustomLabelManagement() {
                 <div className="flex-1">
                   {isCreatingNewLabel ? (
                     <h3 className="text-lg font-bold text-gray-800">
-                      Create New Label
+                      Create New {typeLabel} Label
                     </h3>
                   ) : isEditingName ? (
                     <div className="custom-label-edit-name flex gap-2 items-center flex-wrap">
@@ -404,7 +634,7 @@ export default function CustomLabelManagement() {
                   ) : (
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg font-bold text-gray-800">
-                        Manage "{selectedLabelData?.label_name}" Values
+                        Manage \"{selectedLabelData?.label_name}\" Values
                       </h3>
                       <Button
                         icon="pi pi-pencil"
@@ -485,8 +715,7 @@ export default function CustomLabelManagement() {
                 ))}
 
                 <small className="text-gray-600">
-                  These values will be available in the dropdown when this label
-                  is selected
+                  These values will be available in dropdowns
                 </small>
               </div>
             </div>
@@ -494,45 +723,127 @@ export default function CustomLabelManagement() {
         )}
 
         {/* Empty State */}
-        {!selectedLabelData &&
-          !isCreatingNewLabel &&
-          customLabels.length === 0 && (
-            <Card>
-              <div className="text-center py-8">
-                <i className="pi pi-tags text-6xl text-gray-300 mb-4"></i>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  No Custom Labels Yet
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  Create your first custom label to get started
-                </p>
-                <Button
-                  label="Create Label"
-                  icon="pi pi-plus"
-                  severity="success"
-                  onClick={handleCreateNewLabel}
-                />
-              </div>
-            </Card>
-          )}
+        {!selectedLabelData && !isCreatingNewLabel && labels.length === 0 && (
+          <Card>
+            <div className="text-center py-8">
+              <i className="pi pi-tags text-6xl text-gray-300 mb-4"></i>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                No {typeLabel} Labels Yet
+              </h3>
+              <p className="text-gray-500 mb-4">
+                Create your first {labelType} label to get started
+              </p>
+              <Button
+                label="Create Label"
+                icon="pi pi-plus"
+                severity="success"
+                onClick={handleCreateNewLabel}
+              />
+            </div>
+          </Card>
+        )}
 
         {/* Info State */}
-        {!selectedLabelData &&
-          !isCreatingNewLabel &&
-          customLabels.length > 0 && (
-            <Card>
-              <div className="text-center py-8">
-                <i className="pi pi-info-circle text-6xl text-blue-300 mb-4"></i>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  Select a Label to Manage
-                </h3>
-                <p className="text-gray-500">
-                  Choose a label from the dropdown above to view and edit its
-                  values
-                </p>
-              </div>
-            </Card>
+        {!selectedLabelData && !isCreatingNewLabel && labels.length > 0 && (
+          <Card>
+            <div className="text-center py-8">
+              <i className="pi pi-info-circle text-6xl text-blue-300 mb-4"></i>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                Select a {typeLabel} Label to Manage
+              </h3>
+              <p className="text-gray-500">
+                Choose a {labelType} label from above to view and edit its
+                values
+              </p>
+            </div>
+          </Card>
+        )}
+      </>
+    );
+  };
+
+  return (
+    <>
+      <Toast ref={toast} position="top-right" />
+      <ConfirmDialog />
+
+      {/* Main Screen */}
+      <div className="custom-label-main-container">
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Custom Label Management
+          </h2>
+          <p className="text-gray-600 text-sm">
+            Manage custom labels for products and employees
+          </p>
+        </div>
+
+        {/* Tabbed Interface */}
+        <TabMenu
+          model={tabItems}
+          activeIndex={activeTab}
+          onTabChange={(e) => setActiveTab(e.index)}
+          className="custom-label-tabs"
+        />
+
+        {/* Tab Content */}
+        <div className="tab-panels">
+          {activeTab === 0 && (
+            <div className="tab-panel">
+              {renderLabelManagementUI(
+                "product",
+                productLabels,
+                selectedProductLabelName,
+                selectedProductLabelData,
+                productLabelValues,
+                isCreatingNewProductLabel,
+                newProductLabelName,
+                isEditingProductName,
+                editedProductLabelName,
+                productLabelOptions,
+                handleProductLabelSelect,
+                handleCreateNewProductLabel,
+                handleCancelNewProductLabel,
+                setNewProductLabelName,
+                setEditedProductLabelName,
+                handleSaveProductLabel,
+                handleDeleteProductLabel,
+                setIsEditingProductName,
+                handleProductValueChange,
+                handleRemoveProductValue,
+                handleAddProductValue
+              )}
+            </div>
           )}
+
+          {activeTab === 1 && (
+            <div className="tab-panel">
+              {renderLabelManagementUI(
+                "employee",
+                employeeLabels,
+                selectedEmployeeLabelName,
+                selectedEmployeeLabelData,
+                employeeLabelValues,
+                isCreatingNewEmployeeLabel,
+                newEmployeeLabelName,
+                isEditingEmployeeName,
+                editedEmployeeLabelName,
+                employeeLabelOptions,
+                handleEmployeeLabelSelect,
+                handleCreateNewEmployeeLabel,
+                handleCancelNewEmployeeLabel,
+                setNewEmployeeLabelName,
+                setEditedEmployeeLabelName,
+                handleSaveEmployeeLabel,
+                handleDeleteEmployeeLabel,
+                setIsEditingEmployeeName,
+                handleEmployeeValueChange,
+                handleRemoveEmployeeValue,
+                handleAddEmployeeValue
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

@@ -78,6 +78,25 @@
     color: #1e293b;
 }
 
+/* Prevent extremely long names from overflowing card */
+.avatar-info h2,
+.employee-email {
+    max-width: 100%;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+}
+
+/* Ensure avatar stacks below username when name is very long */
+.avatar-section.long-name {
+    flex-direction: column-reverse;
+    align-items: center;
+}
+
+.avatar-info {
+    padding: 0 1rem;
+}
+
 .employee-email {
     margin: 0 0 1rem 0;
     color: #64748b;
@@ -194,6 +213,19 @@
     font-size: 0.95rem;
     color: #1e293b;
     font-weight: 600;
+    text-align: right;
+}
+
+/* Allow info values to wrap and prevent horizontal scrolling */
+.info-row>* {
+    min-width: 0;
+    /* allow flex items to shrink */
+}
+
+.info-value {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
     text-align: right;
 }
 

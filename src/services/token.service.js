@@ -24,10 +24,12 @@ export const tokenService = {
     }
   },
 
-  // Clear tokens
+  // Clear tokens and all localStorage
   clearTokens: () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    // Clear all localStorage on logout/expiry
+    localStorage.clear();
   },
 
   // Get user role from token

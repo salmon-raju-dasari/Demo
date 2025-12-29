@@ -83,7 +83,8 @@ const OwnerRegistration = () => {
         if (Array.isArray(errors)) {
           detail = errors
             .map((e) => {
-              const field = e.loc?.[e.loc.length - 1] || "field";
+              let field = e.loc?.[e.loc.length - 1] || "field";
+              if (field === "name") field = "username";
               const msg = e.msg || "Invalid value";
               return `${field.replace("_", " ")}: ${msg}`;
             })
@@ -119,7 +120,8 @@ const OwnerRegistration = () => {
           // Extract validation error messages
           detail = errors
             .map((e) => {
-              const field = e.loc?.[e.loc.length - 1] || "field";
+              let field = e.loc?.[e.loc.length - 1] || "field";
+              if (field === "name") field = "username";
               return `${field}: ${e.msg}`;
             })
             .join("; ");

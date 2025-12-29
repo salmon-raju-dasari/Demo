@@ -152,15 +152,21 @@ export const MainLayout = ({ children }) => {
           setUserAvatar(avatarDataUrl);
           localStorage.setItem("user_avatar", avatarDataUrl);
         } else {
-          // Fallback to localStorage if no avatar in DB
-          const avatar = localStorage.getItem("user_avatar");
-          setUserAvatar(avatar);
+          // No avatar for this user - clear the old one and set to null
+          localStorage.removeItem("user_avatar");
+          setUserAvatar(null);
         }
       } catch (error) {
         console.error("Error loading avatar:", error);
-        // Fallback to localStorage on error
-        const avatar = localStorage.getItem("user_avatar");
-        setUserAvatar(avatar);
+        // On error (e.g., 401 unauthorized), clear avatar
+        if (error.response?.status === 401) {
+          localStorage.removeItem("user_avatar");
+          setUserAvatar(null);
+        } else {
+          // For other errors, fallback to localStorage
+          const avatar = localStorage.getItem("user_avatar");
+          setUserAvatar(avatar);
+        }
       }
     };
 

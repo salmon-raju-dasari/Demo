@@ -55,7 +55,8 @@ api.interceptors.request.use(
     if (
       tokenService.willTokenExpireSoon() &&
       !config.url.includes("/refresh") &&
-      !config.url.includes("/auth")
+      !config.url.includes("/auth") &&
+      !config.url.includes("/register")
     ) {
       try {
         const refreshToken = tokenService.getRefreshToken();
@@ -74,16 +75,13 @@ api.interceptors.request.use(
       }
     }
 
-    // Add token to request
+    // Add token to request (skip for register/login/auth endpoints)
     const token = tokenService.getAccessToken();
-    if (token) {
+    if (token && !config.url.includes("/register") && !config.url.includes("/login")) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log("Request to:", config.url, "with token");
     } else {
       console.log("Request to:", config.url, "without token");
-    }
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -103,10 +101,11 @@ api.interceptors.response.use(
 
     // Handle 401 with token refresh
     if (response?.status === 401 && !originalRequest._retry) {
-      // If this is a login request, don't try to refresh - just pass the error through
+      // If this is a login/register request, don't try to refresh - just pass the error through
       if (
         originalRequest.url.includes("/auth") ||
-        originalRequest.url.includes("/login")
+        originalRequest.url.includes("/login") ||
+        originalRequest.url.includes("/register")
       ) {
         return Promise.reject(error);
       }

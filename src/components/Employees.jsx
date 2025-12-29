@@ -172,7 +172,22 @@ export default function Employees() {
 
   // Form field change handler
   const handleChange = (field, value) => {
-    setEmployeeForm((prev) => ({ ...prev, [field]: value }));
+    setEmployeeForm((prev) => {
+      const updated = { ...prev, [field]: value };
+      // When role is set to "owner", clear the store_id value
+      if (field === "role" && value === "owner") {
+        updated.store_id = null;
+      }
+      return updated;
+    });
+    // Remove error for this field as soon as user starts entering/selecting value
+    if (value !== null && value !== "" && value !== undefined) {
+      setFormErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }
   };
 
   // Fetch employees from backend with pagination
@@ -508,6 +523,16 @@ export default function Employees() {
     // If there are errors, display them in the dialog
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
+      // Scroll dialog content to top to show first error
+      // PrimeReact Dialog wraps content in .p-dialog-content which is the scrollable element
+      setTimeout(() => {
+        const dialogContent = document.querySelector(
+          ".employee-dialog .p-dialog-content"
+        );
+        if (dialogContent) {
+          dialogContent.scrollTop = 0;
+        }
+      }, 100);
       return;
     }
 

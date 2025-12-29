@@ -206,6 +206,12 @@
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
     padding: 0.5rem 0;
+    min-height: 400px;
+}
+
+.stores-grid .no-data-container {
+    grid-column: 1 / -1;
+    min-height: 400px;
 }
 
 /* Store Card */
@@ -408,6 +414,20 @@
 
 .form-group .p-inputtext {
     width: 100%;
+}
+
+.form-group .p-dropdown {
+    width: 100%;
+    display: flex !important;
+}
+
+.form-group .p-dropdown .p-dropdown-label {
+    flex: 1;
+}
+
+.form-group .p-dropdown .p-dropdown-trigger {
+    display: flex;
+    align-items: center;
 }
 
 .dialog-footer {

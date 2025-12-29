@@ -20,13 +20,32 @@ import "../styles/storemanagement.css";
  * - Primary key (store_id) used for all operations
  */
 export default function StoreManagement() {
+  // Country list
+  const countries = [
+    { name: "India", code: "IN" },
+    { name: "United States", code: "US" },
+    { name: "United Kingdom", code: "GB" },
+    { name: "Canada", code: "CA" },
+    { name: "Australia", code: "AU" },
+    { name: "Germany", code: "DE" },
+    { name: "France", code: "FR" },
+    { name: "Japan", code: "JP" },
+    { name: "China", code: "CN" },
+    { name: "Brazil", code: "BR" },
+    { name: "Mexico", code: "MX" },
+    { name: "Singapore", code: "SG" },
+    { name: "United Arab Emirates", code: "AE" },
+    { name: "Saudi Arabia", code: "SA" },
+    { name: "South Africa", code: "ZA" },
+  ];
+
   // Store form state
   const [storeForm, setStoreForm] = useState({
     store_name: "",
     store_address: "",
     store_city: "",
     store_state: "",
-    store_country: "",
+    store_country: null,
     store_pincode: "",
   });
 
@@ -117,6 +136,26 @@ export default function StoreManagement() {
       errors.store_name = "Store name is required";
     }
 
+    if (!storeForm.store_address || !storeForm.store_address.trim()) {
+      errors.store_address = "Address is required";
+    }
+
+    if (!storeForm.store_city || !storeForm.store_city.trim()) {
+      errors.store_city = "City is required";
+    }
+
+    if (!storeForm.store_state || !storeForm.store_state.trim()) {
+      errors.store_state = "State is required";
+    }
+
+    if (!storeForm.store_country || !storeForm.store_country) {
+      errors.store_country = "Country is required";
+    }
+
+    if (!storeForm.store_pincode || !storeForm.store_pincode.trim()) {
+      errors.store_pincode = "Pincode is required";
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -124,9 +163,13 @@ export default function StoreManagement() {
   // Handle form field change
   const handleChange = (field, value) => {
     setStoreForm((prev) => ({ ...prev, [field]: value }));
-    // Clear error for this field
-    if (formErrors[field]) {
-      setFormErrors((prev) => ({ ...prev, [field]: null }));
+    // Remove error for this field as soon as user starts entering value
+    if (value !== null && value !== "" && value !== undefined) {
+      setFormErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
     }
   };
 
@@ -137,7 +180,7 @@ export default function StoreManagement() {
       store_address: "",
       store_city: "",
       store_state: "",
-      store_country: "",
+      store_country: null,
       store_pincode: "",
     });
     setFormErrors({});
@@ -149,12 +192,16 @@ export default function StoreManagement() {
   // Open dialog for editing store
   const handleEditStore = (store) => {
     console.log("Editing store:", store);
+    // Find the country object by name
+    const countryObj =
+      countries.find((c) => c.name === store.store_country) || null;
+
     setStoreForm({
       store_name: store.store_name || "",
       store_address: store.store_address || "",
       store_city: store.store_city || "",
       store_state: store.store_state || "",
-      store_country: store.store_country || "",
+      store_country: countryObj,
       store_pincode: store.store_pincode || "",
     });
     setFormErrors({});
@@ -166,15 +213,31 @@ export default function StoreManagement() {
   // Save store (create or update)
   const handleSaveStore = async () => {
     if (!validateForm()) {
+      // Scroll dialog content to top to show first error
+      // PrimeReact Dialog wraps content in .p-dialog-content which is the scrollable element
+      setTimeout(() => {
+        const dialogContent = document.querySelector(
+          ".store-dialog .p-dialog-content"
+        );
+        if (dialogContent) {
+          dialogContent.scrollTop = 0;
+        }
+      }, 100);
       return;
     }
 
     try {
       setSaveLoading(true);
 
+      // Extract country name from country object
+      const storeData = {
+        ...storeForm,
+        store_country: storeForm.store_country?.name || storeForm.store_country,
+      };
+
       if (isEditing) {
         // Update existing store using store_id
-        await api.put(`/stores/${editingStoreId}`, storeForm);
+        await api.put(`/stores/${editingStoreId}`, storeData);
         toast.current.show({
           severity: "success",
           summary: "Success",
@@ -183,7 +246,7 @@ export default function StoreManagement() {
         });
       } else {
         // Create new store
-        await api.post("/stores", storeForm);
+        await api.post("/stores", storeData);
         toast.current.show({
           severity: "success",
           summary: "Success",
@@ -548,6 +611,20 @@ export default function StoreManagement() {
         footer={dialogFooter}
       >
         <div className="store-form">
+          {/* Display form errors at top of dialog */}
+          {Object.keys(formErrors).length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 mb-3">
+              <h4 className="text-red-800 font-semibold mb-2 text-sm">
+                Please fix the following errors:
+              </h4>
+              <ul className="text-red-700 text-xs list-disc list-inside space-y-1">
+                {Object.entries(formErrors).map(([field, error]) => (
+                  <li key={field}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="form-group">
             <label htmlFor="store_name" className="required">
               Store Name
@@ -565,56 +642,89 @@ export default function StoreManagement() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="store_address">Address</label>
+            <label htmlFor="store_address" className="required">
+              Address
+            </label>
             <InputText
               id="store_address"
               value={storeForm.store_address}
               onChange={(e) => handleChange("store_address", e.target.value)}
+              className={formErrors.store_address ? "p-invalid" : ""}
               placeholder="Enter store address"
             />
+            {formErrors.store_address && (
+              <small className="p-error">{formErrors.store_address}</small>
+            )}
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="store_city">City</label>
+              <label htmlFor="store_city" className="required">
+                City
+              </label>
               <InputText
                 id="store_city"
                 value={storeForm.store_city}
                 onChange={(e) => handleChange("store_city", e.target.value)}
+                className={formErrors.store_city ? "p-invalid" : ""}
                 placeholder="Enter city"
               />
+              {formErrors.store_city && (
+                <small className="p-error">{formErrors.store_city}</small>
+              )}
             </div>
 
             <div className="form-group">
-              <label htmlFor="store_state">State</label>
+              <label htmlFor="store_state" className="required">
+                State
+              </label>
               <InputText
                 id="store_state"
                 value={storeForm.store_state}
                 onChange={(e) => handleChange("store_state", e.target.value)}
+                className={formErrors.store_state ? "p-invalid" : ""}
                 placeholder="Enter state"
               />
+              {formErrors.store_state && (
+                <small className="p-error">{formErrors.store_state}</small>
+              )}
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="store_country">Country</label>
-              <InputText
+              <label htmlFor="store_country" className="required">
+                Country
+              </label>
+              <Dropdown
                 id="store_country"
                 value={storeForm.store_country}
-                onChange={(e) => handleChange("store_country", e.target.value)}
-                placeholder="Enter country"
+                options={countries}
+                onChange={(e) => handleChange("store_country", e.value)}
+                optionLabel="name"
+                placeholder="Select country"
+                className={formErrors.store_country ? "p-invalid" : ""}
+                filter
               />
+              {formErrors.store_country && (
+                <small className="p-error">{formErrors.store_country}</small>
+              )}
             </div>
 
             <div className="form-group">
-              <label htmlFor="store_pincode">Pincode</label>
+              <label htmlFor="store_pincode" className="required">
+                Pincode
+              </label>
               <InputText
                 id="store_pincode"
                 value={storeForm.store_pincode}
                 onChange={(e) => handleChange("store_pincode", e.target.value)}
+                className={formErrors.store_pincode ? "p-invalid" : ""}
                 placeholder="Enter pincode"
               />
+              {formErrors.store_pincode && (
+                <small className="p-error">{formErrors.store_pincode}</small>
+              )}
             </div>
           </div>
         </div>

@@ -13,6 +13,87 @@
     box-sizing: border-box;
 }
 
+/* ===== TAB INTERFACE STYLES ===== */
+.custom-label-tabs {
+    margin-top: 1.5rem;
+}
+
+.custom-label-tabs .p-tabmenu-nav {
+    background: #f9fafb;
+    border: none;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+/* INACTIVE TAB */
+.custom-label-tabs .p-menuitem-link {
+    padding: 0.875rem 1.5rem !important;
+    border: none !important;
+    border-bottom: 3px solid transparent !important;
+    border-radius: 8px 8px 0 0 !important;
+    background: transparent !important;
+    color: #9ca3af !important;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.custom-label-tabs .p-menuitem-link:hover {
+    color: #6b7280 !important;
+    background: #f3f4f6 !important;
+}
+
+/* ACTIVE TAB */
+.custom-label-tabs .p-highlight .p-menuitem-link {
+    background: #dbeafe !important;
+    color: #1e40af !important;
+    font-weight: 700 !important;
+    border-bottom: 3px solid #2563eb !important;
+}
+
+.custom-label-tabs .p-menuitem-icon {
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+/* Tab panels container */
+.tab-panels {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-top: none;
+    padding: 2rem;
+}
+
+.tab-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Tab content area */
+.tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Responsive tabs */
+@media (max-width: 640px) {
+    .custom-label-tabs .p-tabmenu-nav {
+        padding: 0.25rem;
+    }
+
+    .custom-label-tabs .p-menuitem-link {
+        padding: 0.75rem 1rem !important;
+        font-size: 0.875rem !important;
+    }
+
+    .tab-panels {
+        padding: 1.25rem;
+    }
+}
+
+/* ===== END TAB STYLES ===== */
+
 @media (min-width: 640px) {
     .custom-label-main-container {
         padding: 1rem;
@@ -181,6 +262,16 @@
 .custom-label-main-container .p-dropdown {
     max-width: 100%;
     box-sizing: border-box;
+    height: 42px;
+}
+
+.custom-label-main-container .p-dropdown .p-dropdown-label {
+    display: flex;
+    align-items: center;
+}
+
+.custom-label-main-container .p-button {
+    height: 42px;
 }
 
 /* Ensure buttons don't overflow on mobile */
