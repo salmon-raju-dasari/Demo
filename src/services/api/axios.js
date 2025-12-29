@@ -77,7 +77,11 @@ api.interceptors.request.use(
 
     // Add token to request (skip for register/login/auth endpoints)
     const token = tokenService.getAccessToken();
-    if (token && !config.url.includes("/register") && !config.url.includes("/login")) {
+    if (
+      token &&
+      !config.url.includes("/register") &&
+      !config.url.includes("/login")
+    ) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log("Request to:", config.url, "with token");
     } else {
