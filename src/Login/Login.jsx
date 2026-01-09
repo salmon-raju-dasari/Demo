@@ -55,7 +55,7 @@ export default function Login() {
       // Fetch payment status to get expiry time
       try {
         const API_BASE_URL =
-          import.meta.env.VITE_API_BASE_URL || "http://192.168.1.2:8000/api";
+          import.meta.env.VITE_API_BASE_URL || "http://136.114.116.97:8000/api";
         const paymentResponse = await fetch(
           `${API_BASE_URL}/payment/status/${userId}`
         );
