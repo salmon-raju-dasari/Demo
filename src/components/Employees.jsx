@@ -201,8 +201,8 @@ export default function Employees() {
         setLoading(true);
         const skip = page * limit;
 
-        // Build URL with query parameters
-        let url = `/employees?skip=${skip}&limit=${limit}`;
+        // Build URL with query parameters (add trailing slash to avoid 307 redirect)
+        let url = `/employees/?skip=${skip}&limit=${limit}`;
 
         // Use multiple filters if available
         if (filters && filters.length > 0) {
