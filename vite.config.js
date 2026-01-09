@@ -10,7 +10,7 @@ export default defineConfig({
     host: "0.0.0.0",
     https: true,
   },
-  base: "",
+  base: "/",
   build: {
     outDir: "dist",
     emptyOutDir: true,
