@@ -10,6 +10,7 @@ import { Password } from "primereact/password";
 import { tokenService } from "../../services/token.service";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api/axios";
+import { compressImage } from "../../utils/imageCompression";
 import "./ProfilePage.css";
 
 export const ProfilePage = () => {
@@ -115,8 +116,12 @@ export const ProfilePage = () => {
 
     try {
       setLoading(true);
+      
+      // Compress image before upload
+      const compressedBlob = await compressImage(selectedFile, 500, 500, 0.7);
+      
       const formData = new FormData();
-      formData.append("avatar", selectedFile);
+      formData.append("avatar", compressedBlob, "avatar.jpg");
 
       const response = await api.post("/employees/upload-avatar", formData, {
         headers: {
