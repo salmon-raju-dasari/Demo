@@ -315,7 +315,7 @@ export default function Employees() {
   // Fetch stores from database
   const fetchStores = useCallback(async () => {
     try {
-      const response = await api.get("/stores?limit=1000");
+      const response = await api.get("/stores/?limit=1000");
       // Handle both paginated and non-paginated responses
       const storesData = response.data?.items
         ? response.data.items
