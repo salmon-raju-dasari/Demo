@@ -13,11 +13,11 @@ const getBaseURL = () => {
 
   if (isCapacitor) {
     // For Capacitor, always use HTTP (no mixed content restrictions)
-    return "http://192.168.1.2:8000/api";
+    return "http://136.114.116.97:8000/api";
   }
 
   // For web, use environment variable
-  return import.meta.env.VITE_API_BASE_URL || "http://192.168.1.2:8000/api";
+  return import.meta.env.VITE_API_BASE_URL || "http://136.114.116.97:8000/api";
 };
 
 // Create axios instance with default config
