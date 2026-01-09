@@ -116,10 +116,10 @@ export const ProfilePage = () => {
 
     try {
       setLoading(true);
-      
+
       // Compress image before upload
       const compressedBlob = await compressImage(selectedFile, 500, 500, 0.7);
-      
+
       const formData = new FormData();
       formData.append("avatar", compressedBlob, "avatar.jpg");
 
