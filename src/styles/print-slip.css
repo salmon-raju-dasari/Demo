@@ -1,0 +1,166 @@
+/* Print Slip Styles */
+
+.print-slip-container {
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+}
+
+.slip-header {
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 15px;
+}
+
+.slip-header h2 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #1a1a1a;
+}
+
+.slip-header p {
+    font-size: 12px;
+    color: #666;
+    margin: 0;
+}
+
+.slip-content {
+    margin: 20px 0;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.content-section {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.content-section label {
+    font-weight: bold;
+    font-size: 13px;
+    display: block;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.content-section span {
+    font-size: 14px;
+    color: #555;
+    word-break: break-word;
+}
+
+.price-highlight {
+    font-size: 18px !important;
+    font-weight: bold;
+    color: #27ae60 !important;
+}
+
+.barcode-section {
+    text-align: center;
+    margin: 30px 0;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.barcode-section label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 13px;
+    color: #333;
+}
+
+.barcode-section svg {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+.qrcode-section {
+    text-align: center;
+    margin: 30px 0;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.qrcode-section label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 13px;
+    color: #333;
+}
+
+.qrcode-section img {
+    max-width: 200px;
+    margin: 0 auto;
+    display: block;
+}
+
+.slip-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 2px solid #333;
+    font-size: 11px;
+    color: #666;
+}
+
+.slip-footer p {
+    margin: 5px 0;
+}
+
+/* Print Styles */
+@media print {
+    body {
+        margin: 0;
+        padding: 10px;
+    }
+
+    .print-slip-container {
+        padding: 0;
+        page-break-after: avoid;
+    }
+
+    .p-dialog {
+        display: none !important;
+    }
+
+    .slip-container {
+        page-break-inside: avoid;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .details-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .slip-header h2 {
+        font-size: 20px;
+    }
+
+    .content-section {
+        padding: 6px 0;
+    }
+
+    .barcode-section,
+    .qrcode-section {
+        padding: 15px;
+        margin: 20px 0;
+    }
+}

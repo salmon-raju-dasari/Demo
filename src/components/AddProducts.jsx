@@ -7,15 +7,23 @@ import { Dialog } from "primereact/dialog";
 import { Checkbox } from "primereact/checkbox";
 import "../styles/add-product.css";
 import { Calendar } from "primereact/calendar";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // New imports for refactored features
 import LoadingSpinner from "./LoadingSpinner";
 import QRCodeScanner from "./QRCodeScanner";
+import PrintSlip from "./PrintSlip";
 import {
   fetchCategories,
   createCategory as apiCreateCategory,
 } from "../services/api/categoryService";
 import { useDependentDataLoader } from "../hooks/useDependentDataLoader";
+import api from "../services/api/axios";
+import {
+  addProducts as addProductsAPI,
+  updateProduct as updateProductAPI,
+} from "../services/api/productService";
+import { ProgressSpinner } from "primereact/progressspinner";
 
 /**
  * AddProducts Component
@@ -25,8 +33,15 @@ import { useDependentDataLoader } from "../hooks/useDependentDataLoader";
  * - Loading spinner for dependent API calls
  * - Proper error handling and user feedback
  * - Scalable and reusable architecture
+ * - Edit mode support for updating existing products
  */
 export default function AddProducts() {
+  // Get location and navigate for edit mode
+  const location = useLocation();
+  const navigate = useNavigate();
+  const editProduct = location.state?.product;
+  const isEditMode = location.state?.isEdit || false;
+
   // Unit categories configuration
   const units = [
     {
@@ -72,7 +87,8 @@ export default function AddProducts() {
     name: "",
     description: "",
     price: "",
-    quantity: "",
+    openingStock: "",
+    unitValue: "",
     skuSuffix: "",
     category: null,
     unit: null,
@@ -83,10 +99,11 @@ export default function AddProducts() {
     supplierName: "",
     supplierContact: "",
     cgst: "",
+    discount: "",
   });
 
   // UI state
-  const [variants, setVariants] = useState([]);
+  const [productLabels, setProductLabels] = useState([]);
   const [categoryDialogVisible, setCategoryDialogVisible] = useState(false);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [newCategory, setNewCategory] = useState("");
@@ -94,6 +111,13 @@ export default function AddProducts() {
   const [galleriaVisible, setGalleriaVisible] = useState(false);
   const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [printSlipVisible, setPrintSlipVisible] = useState(false);
+  const [slipProduct, setSlipProduct] = useState(null);
+
+  // Custom Labels state for product
+  const [labelValueMappings, setLabelValueMappings] = useState({});
+  const [dbLabelValues, setDbLabelValues] = useState({});
 
   // Refs
   const toast = useRef(null);
@@ -136,82 +160,258 @@ export default function AddProducts() {
     }
   }, [error]);
 
+  // Populate form in edit mode
+  useEffect(() => {
+    if (isEditMode && editProduct && categories.length > 0) {
+      // Find the matching category from categories list
+      const matchedCategory = categories.find(
+        (cat) => cat.name === editProduct.category
+      );
+
+      // Find the matching unit from units list
+      let matchedUnit = null;
+      for (const unitCategory of units) {
+        const foundUnit = unitCategory.items.find(
+          (u) => u.symbol === editProduct.unit
+        );
+        if (foundUnit) {
+          matchedUnit = foundUnit;
+          break;
+        }
+      }
+
+      setProductForm({
+        productId: editProduct.productid || "",
+        name: editProduct.productname || "",
+        description: editProduct.description || "",
+        price: editProduct.price || "",
+        openingStock: editProduct.quantity || "",
+        unitValue: editProduct.unitvalue || "",
+        skuSuffix: editProduct.sku || "",
+        category: matchedCategory || null,
+        unit: matchedUnit || null,
+        expiryDate: editProduct.expirydate
+          ? new Date(editProduct.expirydate)
+          : "",
+        mfgDate: editProduct.mfgdate ? new Date(editProduct.mfgdate) : "",
+        barcode: editProduct.barcode || "",
+        brand: editProduct.brand || "",
+        supplierName: editProduct.suppliername || "",
+        supplierContact: editProduct.suppliercontact || "",
+        cgst: editProduct.gst || "",
+        discount: editProduct.discount || "",
+      });
+
+      // Handle product images if available
+      if (
+        editProduct.productimages &&
+        Array.isArray(editProduct.productimages)
+      ) {
+        setProductImages(
+          editProduct.productimages.map((url, index) => ({
+            id: Date.now() + index,
+            url: url,
+            name: `Image ${index + 1}`,
+            isPrimary: index === 0,
+            isExisting: true, // Flag to indicate this is from database
+          }))
+        );
+      }
+
+      // Handle custom fields if available
+      if (editProduct.customfields && Array.isArray(editProduct.customfields)) {
+        const labels = editProduct.customfields.map((field, index) => ({
+          id: Date.now() + index,
+          name: field.fieldname || "",
+          value: field.fieldvalue || "",
+          saved: true,
+        }));
+        setProductLabels(labels);
+      }
+    }
+  }, [isEditMode, editProduct, categories]);
+
   // Form field change handler
   const handleChange = (field, value) => {
     setProductForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Variant management
-  const handleAddVariant = () => {
-    setVariants((prev) => [
+  // Custom Labels helpers for products
+  const addEmptyProductLabel = () => {
+    if (productLabels.some((l) => !l.saved)) return;
+    setProductLabels((prev) => [
       ...prev,
-      { id: Date.now(), name: "", value: "", saved: false, editing: true },
+      { id: Date.now(), name: "", value: "", saved: false },
     ]);
   };
 
-  const handleSaveVariant = (id) => {
-    const variant = variants.find((v) => v.id === id);
-    if (variant && variant.name.trim() && variant.value.trim()) {
-      setVariants((prev) =>
-        prev.map((v) =>
-          v.id === id ? { ...v, saved: true, editing: false } : v
-        )
-      );
-      toast.current?.show({
-        severity: "success",
-        summary: "Label Saved",
-        detail: `${variant.name}: ${variant.value}`,
-        life: 2000,
-      });
-    } else {
+  const saveProductLabel = (id) => {
+    const label = productLabels.find((l) => l.id === id);
+    if (!label || !label.name.trim() || !label.value.trim()) {
       toast.current?.show({
         severity: "warn",
         summary: "Invalid Input",
         detail: "Please fill in both label name and value.",
         life: 3000,
       });
-    }
-  };
-
-  const handleEditVariant = (id) => {
-    setVariants((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, editing: true } : v))
-    );
-  };
-
-  const handleCommitVariant = (id) => {
-    handleSaveVariant(id);
-  };
-
-  const handleCancelEditVariant = (id) => {
-    const target = variants.find((v) => v.id === id);
-    if (
-      target &&
-      !target.saved &&
-      !target.name.trim() &&
-      !target.value.trim()
-    ) {
-      // If both fields are empty and not saved, remove from list
-      setVariants((prev) => prev.filter((v) => v.id !== id));
       return;
     }
-    // Otherwise, just exit editing mode
-    setVariants((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, editing: false } : v))
+
+    // Check for duplicate label name
+    const duplicate = productLabels.find(
+      (l) =>
+        l.id !== id &&
+        l.saved &&
+        l.name.trim().toLowerCase() === label.name.trim().toLowerCase()
+    );
+    if (duplicate) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Duplicate Label",
+        detail: `Label name "${label.name}" already exists. Please use a different name.`,
+        life: 3000,
+      });
+      return;
+    }
+
+    setProductLabels((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, saved: true } : l))
+    );
+    toast.current?.show({
+      severity: "success",
+      summary: "Custom Field Saved",
+      detail: `${label.name}: ${label.value}`,
+      life: 2000,
+    });
+  };
+
+  const removeProductLabel = (id) => {
+    setProductLabels((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  const updateProductLabel = (id, field, value) => {
+    setProductLabels((prev) =>
+      prev.map((l) => {
+        if (l.id === id) {
+          // If transitioning from saved to unsaved (editing), preserve original
+          if (field === "saved" && value === false && l.saved) {
+            return {
+              ...l,
+              [field]: value,
+              originalName: l.name,
+              originalValue: l.value,
+            };
+          }
+          // If changing label name, fetch values for the new label
+          if (field === "name" && value !== l.name) {
+            fetchLabelValues(value);
+          }
+          return { ...l, [field]: value };
+        }
+        return l;
+      })
     );
   };
 
-  const handleVariantChange = (id, field, value) => {
-    setVariants((prev) =>
-      prev.map((variant) =>
-        variant.id === id ? { ...variant, [field]: value } : variant
-      )
+  const cancelEditProductLabel = (id) => {
+    setProductLabels((prev) =>
+      prev
+        .map((l) => {
+          if (l.id === id) {
+            // If has original values, restore them; otherwise it's a new unsaved row, remove it
+            if (l.originalName !== undefined && l.originalValue !== undefined) {
+              return {
+                ...l,
+                name: l.originalName,
+                value: l.originalValue,
+                saved: true,
+                originalName: undefined,
+                originalValue: undefined,
+              };
+            }
+            // New unsaved row - will be filtered out below
+            return null;
+          }
+          return l;
+        })
+        .filter(Boolean)
     );
   };
 
-  const handleRemoveVariant = (id) => {
-    setVariants((prev) => prev.filter((variant) => variant.id !== id));
+  // Get value options for a specific label name
+  const getLabelValueOptions = (labelName) => {
+    if (!labelName) return [];
+
+    // Fetch from database if not already loaded
+    if (!dbLabelValues[labelName] && !labelValueMappings[labelName]) {
+      fetchLabelValues(labelName);
+    }
+
+    // Combine predefined mappings with database values
+    const predefinedValues = labelValueMappings[labelName] || [];
+    const databaseValues = dbLabelValues[labelName] || [];
+
+    // Merge and deduplicate
+    const allValues = [...new Set([...predefinedValues, ...databaseValues])];
+
+    return allValues.map((v) => ({ label: v, value: v }));
   };
+
+  // Fetch values for a specific label from database (custom_labels table)
+  const fetchLabelValues = async (labelName) => {
+    if (!labelName) return;
+    try {
+      const response = await api.get(
+        `/custom-labels-values/${encodeURIComponent(labelName)}`
+      );
+      setDbLabelValues((prev) => ({
+        ...prev,
+        [labelName]: response.data || [],
+      }));
+    } catch (error) {
+      console.error(`Error fetching values for label ${labelName}:`, error);
+    }
+  };
+
+  // Fetch all product custom labels from database
+  const fetchAllProductCustomLabels = async () => {
+    try {
+      const response = await api.get("/custom-labels?label_type=product");
+      const customLabels = response.data || [];
+
+      // Convert array of custom labels to mapping object
+      const dbMappings = {};
+      customLabels.forEach((label) => {
+        dbMappings[label.label_name] = label.label_values;
+      });
+
+      // Update mappings
+      setLabelValueMappings((prev) => ({
+        ...prev,
+        ...dbMappings,
+      }));
+
+      // Also update dbLabelValues for immediate availability
+      setDbLabelValues((prev) => ({
+        ...prev,
+        ...dbMappings,
+      }));
+    } catch (error) {
+      console.error("Error fetching all product custom labels:", error);
+      // Silently fail - custom labels are optional
+    }
+  };
+
+  // Load product custom labels on component mount
+  useEffect(() => {
+    fetchAllProductCustomLabels();
+  }, []);
+
+  // Build label name options from database
+  const labelNameOptions = Object.keys(labelValueMappings).map((name) => ({
+    label: name,
+    value: name,
+  }));
 
   // Category management
   const handleAddCategory = () => {
@@ -269,15 +469,21 @@ export default function AddProducts() {
     cameraInputRef.current?.click();
   };
 
-  const handleCameraCapture = (e) => {
+  const handleCameraCapture = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      const newImages = files.map((file) => ({
-        id: Date.now() + Math.random(),
-        file: file,
-        url: URL.createObjectURL(file),
-        name: file.name,
-      }));
+      // Convert files to base64
+      const newImages = await Promise.all(
+        files.map(async (file) => {
+          const base64 = await fileToBase64(file);
+          return {
+            id: Date.now() + Math.random(),
+            file: file,
+            url: base64, // Use base64 instead of blob URL
+            name: file.name,
+          };
+        })
+      );
 
       setProductImages((prev) => [...prev, ...newImages]);
       toast.current?.show({
@@ -289,6 +495,16 @@ export default function AddProducts() {
 
       e.target.value = "";
     }
+  };
+
+  // Helper function to convert file to base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   const handleRemoveImage = (imageId) => {
@@ -320,10 +536,165 @@ export default function AddProducts() {
     });
   };
 
+  // Generate unique barcode
+  const generateBarcode = () => {
+    // Generate barcode: 13 digits (EAN-13 format)
+    const timestamp = Date.now().toString().slice(-9); // Last 9 digits of timestamp
+    const random = Math.floor(Math.random() * 9999)
+      .toString()
+      .padStart(4, "0"); // 4 random digits
+    const barcode = (timestamp + random).slice(0, 12); // Take 12 digits
+
+    // Calculate checksum for 13th digit (EAN-13 standard)
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(barcode[i]) * (i % 2 === 0 ? 1 : 3);
+    }
+    const checksum = (10 - (sum % 10)) % 10;
+    const fullBarcode = barcode + checksum;
+
+    handleChange("barcode", fullBarcode);
+    toast.current?.show({
+      severity: "success",
+      summary: "Barcode Generated",
+      detail: `Generated barcode: ${fullBarcode}`,
+      life: 3000,
+    });
+  };
+
   // QR Scanner handler
   const handleQRScanComplete = (scannedValue) => {
     handleChange("barcode", scannedValue);
     setScannerVisible(false);
+  };
+
+  // Submit product handler
+  const handleSubmit = async () => {
+    // Validation
+    if (!productForm.productId?.trim()) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Validation Error",
+        detail: "Product ID is required",
+        life: 3000,
+      });
+      return;
+    }
+    if (!productForm.name?.trim()) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Validation Error",
+        detail: "Product Name is required",
+        life: 3000,
+      });
+      return;
+    }
+    if (!productForm.barcode?.trim()) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Validation Error",
+        detail: "Barcode is required",
+        life: 3000,
+      });
+      return;
+    }
+    if (!productForm.price || parseFloat(productForm.price) <= 0) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Validation Error",
+        detail: "Price must be greater than 0",
+        life: 3000,
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Prepare product data
+      const productData = {
+        productid: productForm.productId.trim(),
+        productname: productForm.name.trim(),
+        barcode: productForm.barcode.trim(),
+        sku: productForm.skuSuffix?.trim() || null,
+        description: productForm.description?.trim() || null,
+        brand: productForm.brand?.trim() || null,
+        category: productForm.category || null,
+        price: parseFloat(productForm.price),
+        unitvalue: productForm.unitValue
+          ? parseInt(productForm.unitValue)
+          : null,
+        unit: productForm.unit || null,
+        discount: productForm.discount ? parseInt(productForm.discount) : 0,
+        gst: productForm.cgst ? parseInt(productForm.cgst) : 0,
+        openingstock: productForm.openingStock
+          ? parseInt(productForm.openingStock)
+          : 0,
+        mfgdate: productForm.mfgDate
+          ? productForm.mfgDate.toISOString().split("T")[0]
+          : null,
+        expirydate: productForm.expiryDate
+          ? productForm.expiryDate.toISOString().split("T")[0]
+          : null,
+        suppliername: productForm.supplierName?.trim() || null,
+        suppliercontact: productForm.supplierContact?.trim() || null,
+        productimages: productImages.slice(0, 5).map((img) => img.url),
+        customfields: productLabels
+          .filter((l) => l.saved)
+          .map((l) => ({
+            [l.name]: l.value,
+          })),
+      };
+
+      let result;
+
+      // Call appropriate API based on mode
+      if (isEditMode && editProduct?.id) {
+        result = await updateProductAPI(editProduct.id, productData);
+      } else {
+        result = await addProductsAPI([productData]);
+      }
+
+      if (result.success) {
+        toast.current?.show({
+          severity: "success",
+          summary: "Success",
+          detail: isEditMode
+            ? "Product updated successfully!"
+            : "Product added successfully!",
+          life: 3000,
+        });
+
+        // Navigate back to products list after a delay
+        setTimeout(() => {
+          navigate("/products");
+        }, 1500);
+      } else {
+        const errorMessage =
+          result.error?.message ||
+          result.error?.detail?.message ||
+          (isEditMode ? "Failed to update product" : "Failed to add product");
+        toast.current?.show({
+          severity: "error",
+          summary: "Error",
+          detail: errorMessage,
+          life: 5000,
+        });
+      }
+    } catch (error) {
+      console.error(
+        isEditMode ? "Error updating product:" : "Error adding product:",
+        error
+      );
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "An unexpected error occurred. Please try again.",
+        life: 5000,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -490,11 +861,15 @@ export default function AddProducts() {
                     >
                       <img
                         src={img.url}
-                        alt={img.name}
+                        alt={img.name || `Product image ${index + 1}`}
                         style={{
                           width: "100%",
                           height: "100%",
                           objectFit: "cover",
+                        }}
+                        onError={(e) => {
+                          e.target.src =
+                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect fill='%23f0f0f0' width='60' height='60'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-family='sans-serif' font-size='10'%3ENo Image%3C/text%3E%3C/svg%3E";
                         }}
                       />
                       {primaryImageIndex === index && (
@@ -549,15 +924,26 @@ export default function AddProducts() {
         <div className="bg-blue-100 p-4 pt-3 rounded">
           <div className="flex items-center justify-between">
             <label className="font-bold">Barcode Details</label>
-            <Button
-              icon="pi pi-qrcode"
-              label="Scan"
-              size="small"
-              severity="secondary"
-              onClick={() => setScannerVisible(true)}
-              tooltip="Scan Barcode/QR Code"
-              tooltipOptions={{ position: "top" }}
-            />
+            <div className="flex gap-2">
+              <Button
+                icon="pi pi-sync"
+                label="Generate"
+                size="small"
+                severity="success"
+                onClick={generateBarcode}
+                tooltip="Auto-generate unique barcode"
+                tooltipOptions={{ position: "top" }}
+              />
+              <Button
+                icon="pi pi-qrcode"
+                label="Scan"
+                size="small"
+                severity="secondary"
+                onClick={() => setScannerVisible(true)}
+                tooltip="Scan Barcode/QR Code"
+                tooltipOptions={{ position: "top" }}
+              />
+            </div>
           </div>
           <div className="flex items-center w-full justify-between mt-3">
             <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
@@ -567,7 +953,7 @@ export default function AddProducts() {
               className="p-inputtext-sm w-full p-[5px]!"
               value={productForm.barcode}
               onChange={(e) => handleChange("barcode", e.target.value)}
-              placeholder="Scan or enter barcode"
+              placeholder="Scan, generate, or enter barcode"
             />
           </div>
           <div className="flex items-center w-full justify-between mt-3">
@@ -689,9 +1075,9 @@ export default function AddProducts() {
             </label>
             <InputText
               className="p-inputtext-sm w-full flex-1 p-[5px]!"
-              value={productForm.quantity}
+              value={productForm.unitValue}
               placeholder="00"
-              onChange={(e) => handleChange("quantity", e.target.value)}
+              onChange={(e) => handleChange("unitValue", e.target.value)}
             />
           </div>
           <div className="flex items-center flex-wrap md:flex-row gap-2 w-full mt-3">
@@ -717,6 +1103,7 @@ export default function AddProducts() {
             </label>
             <InputText
               className="p-inputtext-sm w-full flex-1 p-[5px]!"
+              value={productForm.discount}
               placeholder="0.00"
               onChange={(e) => handleChange("discount", e.target.value)}
             />
@@ -742,8 +1129,9 @@ export default function AddProducts() {
         </label>
         <InputText
           className="p-inputtext-sm w-full p-[5px]!"
-          value={productForm.quantity}
-          onChange={(e) => handleChange("quantity", e.target.value)}
+          value={productForm.openingStock}
+          onChange={(e) => handleChange("openingStock", e.target.value)}
+          placeholder="Enter opening stock"
         />
       </div>
 
@@ -774,107 +1162,120 @@ export default function AddProducts() {
       </div>
 
       {/* Custom Labels Section */}
-      <div className="mt-3">
-        <div className="bg-white shadow-sm p-3">
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-[0.8rem] font-bold">Custom Labels</span>
-            <Button
-              icon="pi pi-plus-circle"
-              rounded
-              severity="secondary"
-              onClick={handleAddVariant}
-              className="w-6! h-6!"
-              tooltip="Add Label"
-              tooltipOptions={{ position: "top" }}
-              disabled={variants.some((v) => !v.saved)}
-            />
-          </div>
-          <div className="space-y-2">
-            {variants.length === 0 && (
-              <p className="text-[0.65rem] text-gray-500 italic">
-                No labels added.
-              </p>
-            )}
-            {variants.map((variant) => (
-              <div
-                key={variant.id}
-                className="flex flex-col md:flex-row gap-2 md:items-center p-3 rounded border border-gray-200 bg-gray-50"
-              >
-                {variant.editing ? (
-                  <div className="flex flex-col md:flex-row gap-2 flex-1">
-                    <InputText
-                      className="p-[5px]! flex-1"
-                      value={variant.name}
-                      onChange={(e) =>
-                        handleVariantChange(variant.id, "name", e.target.value)
-                      }
-                      placeholder="Label Name"
-                    />
-                    <InputText
-                      className="p-[5px]! flex-1"
-                      value={variant.value}
-                      onChange={(e) =>
-                        handleVariantChange(variant.id, "value", e.target.value)
-                      }
-                      placeholder="Label Value"
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        icon="pi pi-check"
-                        rounded
-                        severity="success"
-                        onClick={() => handleCommitVariant(variant.id)}
-                        className="w-6! h-6!"
-                        tooltip="Save"
-                        tooltipOptions={{ position: "top" }}
-                      />
-                      <Button
-                        icon="pi pi-times"
-                        rounded
-                        severity="secondary"
-                        onClick={() => handleCancelEditVariant(variant.id)}
-                        className="w-6! h-6!"
-                        tooltip="Cancel"
-                        tooltipOptions={{ position: "top" }}
-                      />
-                    </div>
+      <div className="bg-blue-100 p-4 pt-3 rounded mt-3">
+        <div className="flex items-center justify-between">
+          <label className="text-[1rem] font-bold">Custom Fields</label>
+          <Button
+            icon="pi pi-plus-circle"
+            label="Add Field"
+            size="small"
+            severity="secondary"
+            onClick={addEmptyProductLabel}
+            disabled={productLabels.some((l) => !l.saved)}
+          />
+        </div>
+        <div className="flex flex-col gap-2 mt-3">
+          {productLabels.length === 0 && (
+            <p className="text-[0.75rem] text-gray-600">
+              No custom fields added.
+            </p>
+          )}
+          {productLabels.map((label) => (
+            <div
+              key={label.id}
+              className="grid md:grid-cols-[1fr_1fr_auto] grid-cols-[1fr] gap-2 items-center bg-blue-50 p-3 rounded"
+            >
+              {label.saved ? (
+                <>
+                  <div className="col-span-2 text-sm font-semibold">
+                    {label.name}:{" "}
+                    <span className="font-normal">{label.value}</span>
                   </div>
-                ) : (
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-2">
-                    <div className="flex-1 text-[0.95rem] md:text-[1.05rem]">
-                      <span className="text-gray-900 font-black">
-                        {variant.name}
-                      </span>
-                      <span className="mx-1 text-gray-500">:</span>
-                      <span className="text-gray-900 font-medium">
-                        {variant.value}
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        icon="pi pi-pencil"
-                        rounded
-                        severity="info"
-                        onClick={() => handleEditVariant(variant.id)}
-                        className="w-6! h-6!"
-                        tooltip="Edit"
-                        tooltipOptions={{ position: "top" }}
-                      />
-                      <Button
-                        icon="pi pi-trash"
-                        rounded
-                        severity="danger"
-                        onClick={() => handleRemoveVariant(variant.id)}
-                        className="w-6! h-6!"
-                        tooltip="Delete"
-                        tooltipOptions={{ position: "top" }}
-                      />
-                    </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      icon="pi pi-pencil"
+                      rounded
+                      severity="info"
+                      className="w-6! h-6!"
+                      onClick={() =>
+                        updateProductLabel(label.id, "saved", false)
+                      }
+                      tooltip="Edit"
+                      tooltipOptions={{ position: "top" }}
+                    />
+                    <Button
+                      icon="pi pi-trash"
+                      rounded
+                      severity="danger"
+                      className="w-6! h-6!"
+                      onClick={() => removeProductLabel(label.id)}
+                      tooltip="Delete"
+                      tooltipOptions={{ position: "top" }}
+                    />
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex flex-col w-full">
+                    <label className="text-[0.8rem] font-semibold mb-1">
+                      Label Name
+                    </label>
+                    <Dropdown
+                      value={label.name}
+                      options={labelNameOptions}
+                      onChange={(e) =>
+                        updateProductLabel(label.id, "name", e.value)
+                      }
+                      placeholder="Select label name"
+                      className="w-full!"
+                      filter
+                      editable
+                      optionLabel="label"
+                      optionValue="value"
+                    />
+                  </div>
+                  <div className="flex flex-col w-full">
+                    <label className="text-[0.8rem] font-semibold mb-1">
+                      Label Value
+                    </label>
+                    <Dropdown
+                      value={label.value}
+                      options={getLabelValueOptions(label.name)}
+                      onChange={(e) =>
+                        updateProductLabel(label.id, "value", e.value)
+                      }
+                      placeholder="Select or type label value"
+                      className="w-full!"
+                      filter
+                      editable
+                      optionLabel="label"
+                      optionValue="value"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      icon="pi pi-check"
+                      rounded
+                      severity="success"
+                      className="w-6! h-6!"
+                      onClick={() => saveProductLabel(label.id)}
+                      tooltip="Save"
+                      tooltipOptions={{ position: "top" }}
+                    />
+                    <Button
+                      icon="pi pi-times"
+                      rounded
+                      severity="secondary"
+                      className="w-6! h-6!"
+                      onClick={() => cancelEditProductLabel(label.id)}
+                      tooltip="Cancel"
+                      tooltipOptions={{ position: "top" }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -922,13 +1323,16 @@ export default function AddProducts() {
               <div className="flex items-start gap-3">
                 <img
                   src={img.url}
-                  alt={img.name}
+                  alt={img.name || "Product image"}
                   style={{
                     width: "100px",
                     height: "100px",
                     objectFit: "cover",
                     borderRadius: "4px",
-                    border: "1px solid #ddd",
+                  }}
+                  onError={(e) => {
+                    e.target.src =
+                      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23f0f0f0' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-family='sans-serif' font-size='12'%3ENo Image%3C/text%3E%3C/svg%3E";
                   }}
                 />
                 <div className="flex-1 flex flex-col gap-2 min-w-0">
@@ -962,6 +1366,53 @@ export default function AddProducts() {
           ))}
         </div>
       </Dialog>
+
+      {/* Add/Update Product Button */}
+      <div className="flex justify-end gap-2 mt-6 pb-4">
+        <Button
+          label={isEditMode ? "Update Product" : "Add Product"}
+          icon={isEditMode ? "pi pi-check" : "pi pi-plus"}
+          severity="success"
+          size="large"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="w-full md:w-auto"
+        />
+      </div>
+
+      {/* Loading Dialog */}
+      <Dialog
+        visible={isSubmitting}
+        modal
+        closable={false}
+        showHeader={false}
+        style={{ width: "300px" }}
+        contentStyle={{
+          padding: "2rem",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "1rem",
+        }}
+      >
+        <ProgressSpinner
+          style={{ width: "50px", height: "50px" }}
+          strokeWidth="4"
+        />
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontWeight: "bold", marginBottom: "0.5rem" }}>
+            {isEditMode ? "Updating Product..." : "Adding Product..."}
+          </div>
+          <div style={{ fontSize: "0.875rem", color: "#666" }}>Please wait</div>
+        </div>
+      </Dialog>
+
+      {/* Print Slip Dialog */}
+      <PrintSlip
+        visible={printSlipVisible}
+        onHide={() => setPrintSlipVisible(false)}
+        product={slipProduct}
+      />
     </>
   );
 }

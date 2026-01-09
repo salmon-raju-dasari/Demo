@@ -10,6 +10,7 @@ import ForgotPassword from "./Login/ForgotPassword";
 import Dashboard from "./components/dashboard";
 import { ProfilePage } from "./components/Profile/ProfilePage";
 import AddProducts from "./components/AddProducts";
+import AllProducts from "./components/AllProducts";
 import Employees from "./components/Employees";
 import Business from "./components/Business";
 import StoreManagement from "./components/StoreManagement";
@@ -116,10 +117,7 @@ const RouteConfig = () => {
             requiredRoles={["admin", "owner", "manager", "cashier", "employee"]}
           >
             <MainLayout>
-              <div className="dashboard-card">
-                <h3>All Products</h3>
-                <p>Products list will appear here</p>
-              </div>
+              <AllProducts />
             </MainLayout>
           </ProtectedRoute>
         }

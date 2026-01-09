@@ -285,7 +285,8 @@ export default function Employees() {
   // Fetch all custom labels from database and merge with predefined mappings
   const fetchAllCustomLabels = useCallback(async () => {
     try {
-      const response = await api.get("/custom-labels");
+      // Fetch only employee type labels using label_type query parameter
+      const response = await api.get("/custom-labels?label_type=employee");
       const customLabels = response.data || [];
 
       // Convert array of custom labels to mapping object
