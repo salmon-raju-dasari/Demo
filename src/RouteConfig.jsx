@@ -7,7 +7,7 @@ import Login from "./Login/Login";
 import OwnerRegistration from "./Register/OwnerRegistration";
 import ForgotUsername from "./Login/ForgotUsername";
 import ForgotPassword from "./Login/ForgotPassword";
-import Dashboard from "./components/dashboard";
+import Dashboard from "./components/Dashboard";
 import { ProfilePage } from "./components/Profile/ProfilePage";
 import AddProducts from "./components/AddProducts";
 import AllProducts from "./components/AllProducts";
