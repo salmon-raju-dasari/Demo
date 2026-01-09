@@ -211,12 +211,21 @@ export default function Employees() {
 
         const response = await api.get(url);
 
+        // Debug logging
+        console.log("Employees API Response:", response);
+        console.log("Response data:", response.data);
+        console.log("Response data type:", typeof response.data);
+        console.log("Response data.items:", response.data?.items);
+        console.log("Is items array?", Array.isArray(response.data?.items));
+
         // Handle paginated response from backend
         if (response.data.items && Array.isArray(response.data.items)) {
+          console.log("Setting employees from items:", response.data.items);
           setEmployees(response.data.items);
           setTotalRecords(response.data.total || 0);
         } else {
           // Fallback for non-paginated response (shouldn't happen)
+          console.log("Setting employees from data directly:", response.data);
           setEmployees(response.data);
           setTotalRecords(response.data.length);
         }
