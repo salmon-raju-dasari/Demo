@@ -387,27 +387,44 @@ export default function Business() {
   return (
     <div className="business-container">
       <Toast ref={toast} />
-      
+
       {/* Loading Dialog */}
       <Dialog
         visible={loading}
         modal
         closable={false}
         showHeader={false}
-        style={{ width: '220px', borderRadius: '12px', overflow: 'hidden' }}
-        contentStyle={{ 
-          padding: '2rem',
-          textAlign: 'center',
-          border: 'none',
-          borderRadius: '12px'
+        style={{ width: "220px", borderRadius: "12px", overflow: "hidden" }}
+        contentStyle={{
+          padding: "2rem",
+          textAlign: "center",
+          border: "none",
+          borderRadius: "12px",
         }}
       >
-        <ProgressSpinner 
-          style={{ width: '50px', height: '50px' }} 
+        <ProgressSpinner
+          style={{ width: "50px", height: "50px" }}
           strokeWidth="4"
         />
-        <p style={{ marginTop: '1rem', marginBottom: '0.25rem', fontWeight: '600' }}>Business Details</p>
-        <p style={{ marginTop: 0, marginBottom: 0, fontSize: '0.875rem', color: '#666' }}>Loading...</p>
+        <p
+          style={{
+            marginTop: "1rem",
+            marginBottom: "0.25rem",
+            fontWeight: "600",
+          }}
+        >
+          Business Details
+        </p>
+        <p
+          style={{
+            marginTop: 0,
+            marginBottom: 0,
+            fontSize: "0.875rem",
+            color: "#666",
+          }}
+        >
+          Loading...
+        </p>
       </Dialog>
 
       <div className="business-header">
