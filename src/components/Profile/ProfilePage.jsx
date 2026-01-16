@@ -44,11 +44,10 @@ export const ProfilePage = () => {
       const response = await api.get("/employees/me");
       setEmployee(response.data);
 
-      // Set avatar from base64 data
-      if (response.data.avatar_base64) {
-        const avatarDataUrl = `data:image/png;base64,${response.data.avatar_base64}`;
-        setAvatarUrl(avatarDataUrl);
-        localStorage.setItem("user_avatar", avatarDataUrl);
+      // Set avatar from URL (Google Cloud Storage)
+      if (response.data.avatar_url) {
+        setAvatarUrl(response.data.avatar_url);
+        localStorage.setItem("user_avatar", response.data.avatar_url);
       } else {
         setAvatarUrl(null);
         localStorage.removeItem("user_avatar");
@@ -133,11 +132,12 @@ export const ProfilePage = () => {
       setSelectedImage(null);
       setSelectedFile(null);
 
-      // Update avatar from response
-      const avatarDataUrl = `data:image/png;base64,${response.data.avatar_base64}`;
-      setAvatarUrl(avatarDataUrl);
-      localStorage.setItem("user_avatar", avatarDataUrl);
-      window.dispatchEvent(new Event("storage"));
+      // Update avatar from response (Google Cloud Storage URL)
+      if (response.data.avatar_url) {
+        setAvatarUrl(response.data.avatar_url);
+        localStorage.setItem("user_avatar", response.data.avatar_url);
+        window.dispatchEvent(new Event("storage"));
+      }
 
       // Fetch fresh data to ensure consistency
       await fetchEmployeeData();

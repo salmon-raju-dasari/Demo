@@ -91,14 +91,22 @@ export const MainLayout = ({ children }) => {
       setPreviousPaymentStatus(currentPaymentStatus);
     } catch (error) {
       console.error("Error checking payment status:", error);
-      const paymentCompleted = localStorage.getItem(
-        `payment_completed_${currentUserId}`
-      );
-      if (!paymentCompleted || paymentCompleted !== "true") {
-        console.log("Error case - Setting userId to:", currentUserId);
-        setUserId(currentUserId);
-        setIsOwner(currentUserRole === "owner");
-        setShowPaymentModal(true);
+
+      // Only show payment modal on error if user is owner
+      if (currentUserRole === "owner") {
+        const paymentCompleted = localStorage.getItem(
+          `payment_completed_${currentUserId}`
+        );
+        if (!paymentCompleted || paymentCompleted !== "true") {
+          console.log("Error case (Owner) - Setting userId to:", currentUserId);
+          setUserId(currentUserId);
+          setIsOwner(true);
+          setShowPaymentModal(true);
+        }
+      } else {
+        // For non-owners (employees), don't show payment modal on error
+        console.log("Error case (Employee) - Skipping payment modal");
+        setShowPaymentModal(false);
       }
     }
   }, [
@@ -147,10 +155,10 @@ export const MainLayout = ({ children }) => {
       try {
         // Fetch avatar from database
         const response = await api.get("/employees/me");
-        if (response.data.avatar_base64) {
-          const avatarDataUrl = `data:image/png;base64,${response.data.avatar_base64}`;
-          setUserAvatar(avatarDataUrl);
-          localStorage.setItem("user_avatar", avatarDataUrl);
+        if (response.data.avatar_url) {
+          // Use Google Cloud Storage URL directly
+          setUserAvatar(response.data.avatar_url);
+          localStorage.setItem("user_avatar", response.data.avatar_url);
         } else {
           // No avatar for this user - clear the old one and set to null
           localStorage.removeItem("user_avatar");
