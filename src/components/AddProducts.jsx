@@ -13,10 +13,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import LoadingSpinner from "./LoadingSpinner";
 import QRCodeScanner from "./QRCodeScanner";
 import PrintSlip from "./PrintSlip";
-import {
-  fetchCategories,
-  createCategory as apiCreateCategory,
-} from "../services/api/categoryService";
+import { fetchCategories } from "../services/api/categoryService";
 import { useDependentDataLoader } from "../hooks/useDependentDataLoader";
 import api from "../services/api/axios";
 import {
@@ -83,7 +80,6 @@ export default function AddProducts() {
 
   // Product form state
   const [productForm, setProductForm] = useState({
-    productId: "",
     name: "",
     description: "",
     price: "",
@@ -104,13 +100,10 @@ export default function AddProducts() {
 
   // UI state
   const [productLabels, setProductLabels] = useState([]);
-  const [categoryDialogVisible, setCategoryDialogVisible] = useState(false);
   const [scannerVisible, setScannerVisible] = useState(false);
-  const [newCategory, setNewCategory] = useState("");
   const [productImages, setProductImages] = useState([]);
   const [galleriaVisible, setGalleriaVisible] = useState(false);
   const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [printSlipVisible, setPrintSlipVisible] = useState(false);
   const [slipProduct, setSlipProduct] = useState(null);
@@ -163,33 +156,20 @@ export default function AddProducts() {
   // Populate form in edit mode
   useEffect(() => {
     if (isEditMode && editProduct && categories.length > 0) {
-      // Find the matching category from categories list
+      // Find the matching category ID from category name
       const matchedCategory = categories.find(
         (cat) => cat.name === editProduct.category
       );
 
-      // Find the matching unit from units list
-      let matchedUnit = null;
-      for (const unitCategory of units) {
-        const foundUnit = unitCategory.items.find(
-          (u) => u.symbol === editProduct.unit
-        );
-        if (foundUnit) {
-          matchedUnit = foundUnit;
-          break;
-        }
-      }
-
       setProductForm({
-        productId: editProduct.productid || "",
         name: editProduct.productname || "",
         description: editProduct.description || "",
         price: editProduct.price || "",
         openingStock: editProduct.quantity || "",
         unitValue: editProduct.unitvalue || "",
         skuSuffix: editProduct.sku || "",
-        category: matchedCategory || null,
-        unit: matchedUnit || null,
+        category: matchedCategory?.id || null,  // Store ID, not object
+        unit: editProduct.unit || null,  // Store symbol directly
         expiryDate: editProduct.expirydate
           ? new Date(editProduct.expirydate)
           : "",
@@ -413,52 +393,7 @@ export default function AddProducts() {
     value: name,
   }));
 
-  // Category management
-  const handleAddCategory = () => {
-    setCategoryDialogVisible(true);
-  };
-
-  const handleCategorySubmit = async () => {
-    if (!newCategory.trim()) {
-      toast.current?.show({
-        severity: "warn",
-        summary: "Invalid Input",
-        detail: "Please enter a category name.",
-        life: 3000,
-      });
-      return;
-    }
-
-    setIsCreatingCategory(true);
-    try {
-      await apiCreateCategory({ name: newCategory, description: "" });
-      toast.current?.show({
-        severity: "success",
-        summary: "Category Added",
-        detail: `Category "${newCategory}" has been added successfully!`,
-        life: 3000,
-      });
-      setNewCategory("");
-      setCategoryDialogVisible(false);
-      // Refresh categories list
-      window.location.reload(); // In production, use proper state management
-    } catch (err) {
-      console.error("Error creating category:", err);
-      toast.current?.show({
-        severity: "error",
-        summary: "Error",
-        detail: err.message || "Failed to create category",
-        life: 4000,
-      });
-    } finally {
-      setIsCreatingCategory(false);
-    }
-  };
-
-  const handleCategoryCancel = () => {
-    setNewCategory("");
-    setCategoryDialogVisible(false);
-  };
+  // Category management removed - now in separate CategoryManagement screen
 
   // Image management
   const handleFileUpload = () => {
@@ -571,15 +506,6 @@ export default function AddProducts() {
   // Submit product handler
   const handleSubmit = async () => {
     // Validation
-    if (!productForm.productId?.trim()) {
-      toast.current?.show({
-        severity: "warn",
-        summary: "Validation Error",
-        detail: "Product ID is required",
-        life: 3000,
-      });
-      return;
-    }
     if (!productForm.name?.trim()) {
       toast.current?.show({
         severity: "warn",
@@ -611,20 +537,31 @@ export default function AddProducts() {
     setIsSubmitting(true);
 
     try {
+      // Debug: Log form values before processing
+      console.log("Product Form:", productForm);
+      console.log("Category ID:", productForm.category);
+      console.log("Unit Symbol:", productForm.unit);
+
+      // Look up category name from ID
+      const categoryName = productForm.category
+        ? categories.find((cat) => cat.id === productForm.category)?.name
+        : null;
+
+      console.log("Category Name:", categoryName);
+
       // Prepare product data
       const productData = {
-        productid: productForm.productId.trim(),
         productname: productForm.name.trim(),
         barcode: productForm.barcode.trim(),
         sku: productForm.skuSuffix?.trim() || null,
         description: productForm.description?.trim() || null,
         brand: productForm.brand?.trim() || null,
-        category: productForm.category || null,
+        category: categoryName, // Use looked-up category name
         price: parseFloat(productForm.price),
         unitvalue: productForm.unitValue
           ? parseInt(productForm.unitValue)
           : null,
-        unit: productForm.unit || null,
+        unit: productForm.unit || null, // Unit is already the symbol string
         discount: productForm.discount ? parseInt(productForm.discount) : 0,
         gst: productForm.cgst ? parseInt(productForm.cgst) : 0,
         openingstock: productForm.openingStock
@@ -670,10 +607,36 @@ export default function AddProducts() {
           navigate("/products");
         }, 1500);
       } else {
-        const errorMessage =
-          result.error?.message ||
-          result.error?.detail?.message ||
-          (isEditMode ? "Failed to update product" : "Failed to add product");
+        // Extract detailed error message from backend response
+        let errorMessage = "Failed to add product";
+
+        console.log(
+          "Full error object:",
+          JSON.stringify(result.error, null, 2)
+        );
+
+        if (result.error?.detail) {
+          // Backend sends structured error
+          if (typeof result.error.detail === "string") {
+            errorMessage = result.error.detail;
+          } else if (result.error.detail.message) {
+            errorMessage = result.error.detail.message;
+          } else if (Array.isArray(result.error.detail)) {
+            // Pydantic validation errors
+            errorMessage = result.error.detail
+              .map((err) => `${err.loc?.join(" -> ") || "Field"}: ${err.msg}`)
+              .join(", ");
+          } else {
+            // Object format error
+            errorMessage = JSON.stringify(result.error.detail);
+          }
+        } else if (result.error?.message) {
+          errorMessage = result.error.message;
+        }
+
+        console.error("Product creation error:", result.error);
+        console.error("Error message to display:", errorMessage);
+
         toast.current?.show({
           severity: "error",
           summary: "Error",
@@ -686,10 +649,23 @@ export default function AddProducts() {
         isEditMode ? "Error updating product:" : "Error adding product:",
         error
       );
+
+      // Try to extract meaningful error message
+      let errorDetail = "An unexpected error occurred. Please try again.";
+      if (error.response?.data?.detail) {
+        if (typeof error.response.data.detail === "string") {
+          errorDetail = error.response.data.detail;
+        } else if (error.response.data.detail.message) {
+          errorDetail = error.response.data.detail.message;
+        }
+      } else if (error.message) {
+        errorDetail = error.message;
+      }
+
       toast.current?.show({
         severity: "error",
         summary: "Error",
-        detail: "An unexpected error occurred. Please try again.",
+        detail: errorDetail,
         life: 5000,
       });
     } finally {
@@ -701,14 +677,6 @@ export default function AddProducts() {
     <>
       <Toast ref={toast} position="top-right" appendTo={document.body} />
 
-      {/* Loading Spinner for dependent data */}
-      <LoadingSpinner
-        isLoading={isLoading}
-        message="Loading product categories..."
-        fullScreen={true}
-        size="md"
-      />
-
       {/* QR Code Scanner Modal */}
       <QRCodeScanner
         visible={scannerVisible}
@@ -717,51 +685,7 @@ export default function AddProducts() {
         dialogHeader="Scan Product Barcode/QR Code"
       />
 
-      {/* Add Category Dialog */}
-      <Dialog
-        header="Add New Category"
-        visible={categoryDialogVisible}
-        style={{ width: "90vw", maxWidth: "400px" }}
-        onHide={handleCategoryCancel}
-        draggable={false}
-        resizable={false}
-        blockScroll
-      >
-        <div className="flex flex-col gap-4 p-3">
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="category-name"
-              className="text-[0.9rem] font-semibold"
-            >
-              Category Name
-            </label>
-            <InputText
-              id="category-name"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              placeholder="Enter category name"
-              className="w-full"
-              disabled={isCreatingCategory}
-            />
-          </div>
-          <div className="flex gap-2 justify-end mt-2">
-            <Button
-              label="Cancel"
-              severity="secondary"
-              onClick={handleCategoryCancel}
-              className="px-4"
-              disabled={isCreatingCategory}
-            />
-            <Button
-              label="Add"
-              severity="success"
-              onClick={handleCategorySubmit}
-              className="px-4"
-              loading={isCreatingCategory}
-            />
-          </div>
-        </div>
-      </Dialog>
+      {/* Add Category Dialog removed - now in separate CategoryManagement screen */}
 
       {/* Main Product Form */}
       <div className="flex flex-col gap-3 w-full">
@@ -970,19 +894,6 @@ export default function AddProducts() {
         </div>
 
         {/* Basic Product Information */}
-        {/* Product ID above Product Name */}
-        <div className="flex items-center w-full justify-between">
-          <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
-            Product ID
-          </label>
-          <InputText
-            className="p-inputtext-sm w-full p-[5px]!"
-            value={productForm.productId}
-            onChange={(e) => handleChange("productId", e.target.value)}
-            placeholder="Enter product ID"
-          />
-        </div>
-
         <div className="flex items-center w-full justify-between">
           <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
             Product Name
@@ -1021,19 +932,16 @@ export default function AddProducts() {
 
         {/* Category Selection from Database */}
         <div className="flex items-center w-full justify-between">
-          <div className="flex items-center gap-3 min-w-[120px]">
+          <div className="flex items-center gap-2 min-w-[120px]">
             <label className="label-add-product text-[0.8rem] font-bold">
               Category
             </label>
-            <Button
-              icon="pi pi-plus-circle"
-              rounded
-              severity="secondary"
-              onClick={handleAddCategory}
-              className="w-6! h-6!"
-              tooltip="Add Category"
-              tooltipOptions={{ position: "top" }}
-            />
+            {isLoading && (
+              <i
+                className="pi pi-spinner pi-spin"
+                style={{ fontSize: "0.8rem", color: "#3b82f6" }}
+              ></i>
+            )}
           </div>
 
           <Dropdown
@@ -1042,7 +950,8 @@ export default function AddProducts() {
             options={categories}
             onChange={(e) => handleChange("category", e.value)}
             optionLabel="label"
-            optionValue="value"
+            optionValue="id"
+            dataKey="id"
             placeholder={
               isLoading ? "Loading categories..." : "Select a Category"
             }
@@ -1090,6 +999,7 @@ export default function AddProducts() {
               options={units}
               optionLabel="label"
               optionValue="symbol"
+              dataKey="symbol"
               optionGroupLabel="category"
               optionGroupChildren="items"
               onChange={(e) => handleChange("unit", e.value)}
