@@ -125,7 +125,7 @@ export default function AddProducts() {
         fetcher: () => fetchCategories(),
       },
     ],
-    []
+    [],
   );
 
   // Load categories using dependent data loader
@@ -158,7 +158,7 @@ export default function AddProducts() {
     if (isEditMode && editProduct && categories.length > 0) {
       // Find the matching category ID from category name
       const matchedCategory = categories.find(
-        (cat) => cat.name === editProduct.category
+        (cat) => cat.name === editProduct.category,
       );
 
       setProductForm({
@@ -168,8 +168,8 @@ export default function AddProducts() {
         openingStock: editProduct.quantity || "",
         unitValue: editProduct.unitvalue || "",
         skuSuffix: editProduct.sku || "",
-        category: matchedCategory?.id || null,  // Store ID, not object
-        unit: editProduct.unit || null,  // Store symbol directly
+        category: matchedCategory?.id || null, // Store ID, not object
+        unit: editProduct.unit || null, // Store symbol directly
         expiryDate: editProduct.expirydate
           ? new Date(editProduct.expirydate)
           : "",
@@ -194,7 +194,7 @@ export default function AddProducts() {
             name: `Image ${index + 1}`,
             isPrimary: index === 0,
             isExisting: true, // Flag to indicate this is from database
-          }))
+          })),
         );
       }
 
@@ -202,8 +202,8 @@ export default function AddProducts() {
       if (editProduct.customfields && Array.isArray(editProduct.customfields)) {
         const labels = editProduct.customfields.map((field, index) => ({
           id: Date.now() + index,
-          name: field.fieldname || "",
-          value: field.fieldvalue || "",
+          name: field.field_name || "",
+          value: field.field_value || "",
           saved: true,
         }));
         setProductLabels(labels);
@@ -242,7 +242,7 @@ export default function AddProducts() {
       (l) =>
         l.id !== id &&
         l.saved &&
-        l.name.trim().toLowerCase() === label.name.trim().toLowerCase()
+        l.name.trim().toLowerCase() === label.name.trim().toLowerCase(),
     );
     if (duplicate) {
       toast.current?.show({
@@ -255,7 +255,7 @@ export default function AddProducts() {
     }
 
     setProductLabels((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, saved: true } : l))
+      prev.map((l) => (l.id === id ? { ...l, saved: true } : l)),
     );
     toast.current?.show({
       severity: "success",
@@ -282,14 +282,11 @@ export default function AddProducts() {
               originalValue: l.value,
             };
           }
-          // If changing label name, fetch values for the new label
-          if (field === "name" && value !== l.name) {
-            fetchLabelValues(value);
-          }
+          // No API call when changing label name - values already loaded
           return { ...l, [field]: value };
         }
         return l;
-      })
+      }),
     );
   };
 
@@ -314,7 +311,7 @@ export default function AddProducts() {
           }
           return l;
         })
-        .filter(Boolean)
+        .filter(Boolean),
     );
   };
 
@@ -342,7 +339,7 @@ export default function AddProducts() {
     if (!labelName) return;
     try {
       const response = await api.get(
-        `/custom-labels-values/${encodeURIComponent(labelName)}`
+        `/custom-labels-values/${encodeURIComponent(labelName)}`,
       );
       setDbLabelValues((prev) => ({
         ...prev,
@@ -407,6 +404,19 @@ export default function AddProducts() {
   const handleCameraCapture = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
+      // Check if adding these images would exceed the 5 image limit
+      const totalImages = productImages.length + files.length;
+      if (totalImages > 5) {
+        toast.current?.show({
+          severity: "error",
+          summary: "Maximum Images Exceeded",
+          detail: `Maximum 5 images allowed per product. You currently have ${productImages.length} image(s). Cannot add ${files.length} more.`,
+          life: 4000,
+        });
+        e.target.value = "";
+        return;
+      }
+
       // Convert files to base64
       const newImages = await Promise.all(
         files.map(async (file) => {
@@ -417,7 +427,7 @@ export default function AddProducts() {
             url: base64, // Use base64 instead of blob URL
             name: file.name,
           };
-        })
+        }),
       );
 
       setProductImages((prev) => [...prev, ...newImages]);
@@ -579,7 +589,8 @@ export default function AddProducts() {
         customfields: productLabels
           .filter((l) => l.saved)
           .map((l) => ({
-            [l.name]: l.value,
+            field_name: l.name,
+            field_value: l.value,
           })),
       };
 
@@ -612,7 +623,7 @@ export default function AddProducts() {
 
         console.log(
           "Full error object:",
-          JSON.stringify(result.error, null, 2)
+          JSON.stringify(result.error, null, 2),
         );
 
         if (result.error?.detail) {
@@ -647,7 +658,7 @@ export default function AddProducts() {
     } catch (error) {
       console.error(
         isEditMode ? "Error updating product:" : "Error adding product:",
-        error
+        error,
       );
 
       // Try to extract meaningful error message
@@ -1139,7 +1150,6 @@ export default function AddProducts() {
                       placeholder="Select label name"
                       className="w-full!"
                       filter
-                      editable
                       optionLabel="label"
                       optionValue="value"
                     />
@@ -1154,10 +1164,9 @@ export default function AddProducts() {
                       onChange={(e) =>
                         updateProductLabel(label.id, "value", e.value)
                       }
-                      placeholder="Select or type label value"
+                      placeholder="Select label value"
                       className="w-full!"
                       filter
-                      editable
                       optionLabel="label"
                       optionValue="value"
                     />
