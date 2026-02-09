@@ -16,6 +16,9 @@ import Business from "./components/Business";
 import StoreManagement from "./components/StoreManagement";
 import CustomLabelManagement from "./components/CustomLabelManagement";
 import CategoryManagement from "./components/CategoryManagement";
+import SalesScreen from "./components/SalesScreen";
+import SalesHistory from "./components/SalesHistory";
+import UnitManagement from "./components/UnitManagement";
 // Import your other components
 
 const RouteConfig = () => {
@@ -100,6 +103,17 @@ const RouteConfig = () => {
       />
 
       <Route
+        path="/units"
+        element={
+          <ProtectedRoute requiredRoles={["admin", "owner", "manager"]}>
+            <MainLayout>
+              <UnitManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/business"
         element={
           <ProtectedRoute requiredRoles={["owner"]}>
@@ -159,6 +173,30 @@ const RouteConfig = () => {
           <ProtectedRoute requiredRoles={["admin", "owner"]}>
             <MainLayout>
               <StoreManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/sales"
+        element={
+          <ProtectedRoute
+            requiredRoles={["admin", "owner", "manager", "cashier", "employee"]}
+          >
+            <MainLayout>
+              <SalesScreen />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/sales/history"
+        element={
+          <ProtectedRoute requiredRoles={["admin", "owner", "manager"]}>
+            <MainLayout>
+              <SalesHistory />
             </MainLayout>
           </ProtectedRoute>
         }

@@ -31,8 +31,8 @@
 /* Main Content Wrapper */
 .main-content-wrapper {
     flex: 1;
-    margin-left: 80px;
-    width: calc(100% - 80px);
+    margin-left: 60px;
+    width: calc(100% - 60px);
     display: flex;
     flex-direction: column;
     transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -40,96 +40,110 @@
 }
 
 .main-content-wrapper.sidebar-collapsed {
-    margin-left: 80px;
-    width: calc(100% - 80px);
+    margin-left: 60px;
+    width: calc(100% - 60px);
 }
 
-/* Topbar */
+/* Topbar - Enterprise Edition */
 .topbar {
     position: sticky;
     top: 0;
     z-index: 100;
     background: #ffffff;
-    padding: 16px 32px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 8px 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    min-height: 70px;
+    min-height: 50px;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .topbar-start {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
 .topbar-end {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 12px;
 }
 
-/* Toggle Button */
+/* Toggle Button - Compact */
 .toggle-btn {
-    font-size: 1.5rem;
-    color: #495057;
+    font-size: 1.2rem !important;
+    color: #495057 !important;
     transition: transform 0.2s ease;
     display: flex !important;
     align-items: center;
     justify-content: center;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
 }
 
 .toggle-btn:hover {
-    transform: scale(1.1);
-    background: rgba(102, 126, 234, 0.1) !important;
-    color: #667eea !important;
+    transform: scale(1.05);
+    background: rgba(33, 150, 243, 0.1) !important;
+    color: #2196f3 !important;
 }
 
-/* Notification Button */
+/* Notification Button - Compact */
 .notification-btn {
     position: relative;
-    color: #495057;
-    font-size: 1.3rem;
+    color: #495057 !important;
+    font-size: 1.1rem !important;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
 }
 
 .notification-btn:hover {
-    background: rgba(102, 126, 234, 0.1) !important;
-    color: #667eea !important;
+    background: rgba(33, 150, 243, 0.1) !important;
+    color: #2196f3 !important;
 }
 
 .notification-btn .p-badge {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    min-width: 18px;
-    height: 18px;
-    font-size: 0.7rem;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 9px;
+    padding: 0 4px;
 }
 
-/* User Profile */
+/* User Profile - Compact Enterprise */
 .user-profile {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #FF9933 0%, #138808 100%);
+    gap: 8px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .user-profile:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.user-profile .p-avatar {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 14px !important;
 }
 
 .user-role {
-    font-size: 0.9rem;
+    font-size: 12px;
     font-weight: 600;
     text-transform: capitalize;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Logout Button */
@@ -144,50 +158,54 @@
     box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
-/* Main Content Area */
+/* Main Content Area - Compact */
 .main-content {
     flex: 1;
-    padding: 32px;
+    padding: 12px;
     overflow-y: auto;
-    background: #f8f9fa;
+    background: #f5f5f5;
 }
 
-/* Dashboard Card */
+/* Dashboard Card - Enterprise Compact */
 .dashboard-card {
     background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    margin-bottom: 1.5rem;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dashboard-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .dashboard-card h3 {
-    margin: 0 0 1rem 0;
-    color: #495057;
-    font-size: 1.25rem;
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 16px;
     font-weight: 600;
 }
 
-/* Responsive Design */
+/* Responsive Design - Enterprise */
 @media (max-width: 1200px) {
     .topbar {
-        padding: 16px 24px;
+        padding: 8px 12px;
     }
 
     .main-content {
-        padding: 24px;
+        padding: 10px;
     }
 }
 
 @media (max-width: 992px) {
     .user-role {
         display: none;
+    }
+
+    .user-profile {
+        padding: 4px;
     }
 }
 
@@ -203,7 +221,7 @@
     }
 
     .topbar {
-        padding: 12px 16px;
+        padding: 8px 10px;
     }
 
     .topbar-start {
@@ -211,39 +229,39 @@
     }
 
     .topbar-end {
-        gap: 12px;
-    }
-
-    .logout-btn .p-button-label {
-        display: none;
-    }
-
-    .logout-btn .p-button-icon {
-        margin: 0;
-        line-height: inherit;
+        gap: 8px;
     }
 
     .main-content {
-        padding: 16px;
+        padding: 8px;
     }
 
     .user-profile {
-        padding: 8px;
+        padding: 4px;
     }
 }
 
 @media (max-width: 576px) {
     .notification-btn {
-        font-size: 1.1rem;
+        font-size: 1rem !important;
+        width: 28px !important;
+        height: 28px !important;
     }
 
     .toggle-btn {
-        font-size: 1.3rem;
+        font-size: 1.1rem !important;
+        width: 28px !important;
+        height: 28px !important;
     }
 
     .user-profile .p-avatar {
-        width: 35px !important;
-        height: 35px !important;
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 12px !important;
+    }
+
+    .main-content {
+        padding: 6px;
     }
 }
 

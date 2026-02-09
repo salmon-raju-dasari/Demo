@@ -11,7 +11,7 @@ import {
 } from "../services/api/categoryService";
 import "../styles/category-management.css";
 
-export default function CategoryManagement() {
+export default function CategoryManagement({ onCategoryAdded }) {
   // Form state
   const [categoryName, setCategoryName] = useState("");
   const [categoryDescription, setCategoryDescription] = useState("");
@@ -101,6 +101,11 @@ export default function CategoryManagement() {
         detail: `Category "${newCategory.name}" created successfully`,
         life: 3000,
       });
+
+      // Call callback if provided (for popup mode)
+      if (onCategoryAdded) {
+        onCategoryAdded(newCategory);
+      }
     } catch (error) {
       const errorMessage =
         error.details?.message || error.message || "Failed to create category";
@@ -154,8 +159,8 @@ export default function CategoryManagement() {
                 name: updated.name,
                 description: updated.description || "",
               }
-            : cat
-        )
+            : cat,
+        ),
       );
 
       setEditingId(null);
@@ -297,7 +302,7 @@ export default function CategoryManagement() {
             <div className="grid-body">
               {categories
                 .filter((cat) =>
-                  cat.name.toLowerCase().includes(searchFilter.toLowerCase())
+                  cat.name.toLowerCase().includes(searchFilter.toLowerCase()),
                 )
                 .map((category) => (
                   <div key={category.id} className="grid-row">
@@ -326,7 +331,6 @@ export default function CategoryManagement() {
                             severity="success"
                             onClick={() => handleEditSave(category.id)}
                             tooltip="Save"
-                            tooltipPosition="top"
                             disabled={loading}
                             className="btn-action btn-save"
                           />
@@ -337,7 +341,6 @@ export default function CategoryManagement() {
                             severity="secondary"
                             onClick={handleEditCancel}
                             tooltip="Cancel"
-                            tooltipPosition="top"
                             disabled={loading}
                             className="btn-action btn-cancel"
                           />
@@ -351,7 +354,6 @@ export default function CategoryManagement() {
                             severity="info"
                             onClick={() => handleEditStart(category)}
                             tooltip="Edit"
-                            tooltipPosition="top"
                             disabled={loading}
                             className="btn-action btn-edit"
                           />
@@ -362,7 +364,6 @@ export default function CategoryManagement() {
                             severity="danger"
                             onClick={() => handleDeleteConfirm(category)}
                             tooltip="Delete"
-                            tooltipPosition="top"
                             disabled={loading}
                             className="btn-action btn-delete"
                           />
@@ -372,7 +373,7 @@ export default function CategoryManagement() {
                   </div>
                 ))}
               {categories.filter((cat) =>
-                cat.name.toLowerCase().includes(searchFilter.toLowerCase())
+                cat.name.toLowerCase().includes(searchFilter.toLowerCase()),
               ).length === 0 &&
                 searchFilter && (
                   <div className="no-results">

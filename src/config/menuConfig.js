@@ -24,6 +24,11 @@ export const menuItems = [
         icon: "pi pi-tags",
         to: "/products/categories",
       },
+      {
+        label: "Unit Management",
+        icon: "pi pi-directions",
+        to: "/units",
+      },
     ],
   },
   {
@@ -33,7 +38,7 @@ export const menuItems = [
       {
         label: "New Sale",
         icon: "pi pi-plus",
-        to: "/sales/new",
+        to: "/sales",
       },
       {
         label: "Sales History",

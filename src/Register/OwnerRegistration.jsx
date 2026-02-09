@@ -14,6 +14,7 @@ const OwnerRegistration = () => {
     name: "",
     phone_number: "",
     email: "",
+    business_name: "",
     password: "",
     confirmPassword: "",
   });
@@ -44,6 +45,9 @@ const OwnerRegistration = () => {
     if (!form.email || !form.email.trim()) {
       newErrors.email = "Email is required";
     }
+    if (!form.business_name || !form.business_name.trim()) {
+      newErrors.business_name = "Business name is required";
+    }
     if (!form.phone_number || !form.phone_number.trim()) {
       newErrors.phone_number = "Phone number is required";
     }
@@ -67,12 +71,13 @@ const OwnerRegistration = () => {
       setLoading(true);
       console.log(
         "Submitting registration with API base URL:",
-        import.meta.env.VITE_API_BASE_URL
+        import.meta.env.VITE_API_BASE_URL,
       );
       const response = await api.post("/employees/register-owner", {
         name: form.name,
         email: form.email,
         phone_number: form.phone_number,
+        business_name: form.business_name,
         password: form.password,
         confirm_password: form.confirmPassword,
       });
@@ -104,7 +109,7 @@ const OwnerRegistration = () => {
         "success",
         "Registration Successful",
         `Account created! Your User ID: ${userId}, Business ID: ${businessId}. Please use your User ID to login.`,
-        6000
+        6000,
       );
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
@@ -194,6 +199,23 @@ const OwnerRegistration = () => {
               />
               {errors.email && (
                 <small className="p-error block mt-1">{errors.email}</small>
+              )}
+            </div>
+            <div className="field mb-3">
+              <label className="block mb-2">
+                Business Name <span className="text-red-500">*</span>
+              </label>
+              <InputText
+                name="business_name"
+                value={form.business_name}
+                onChange={handleChange}
+                placeholder="Enter business name"
+                className={`w-full ${errors.business_name ? "p-invalid" : ""}`}
+              />
+              {errors.business_name && (
+                <small className="p-error block mt-1">
+                  {errors.business_name}
+                </small>
               )}
             </div>
             <div className="field mb-3">

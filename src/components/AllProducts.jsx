@@ -41,6 +41,45 @@ export default function AllProducts() {
     return url;
   };
 
+  // Helper function to format unit display with proper pluralization
+  const formatUnitDisplay = (quantity, unit) => {
+    if (!unit) return "units";
+
+    // Remove "per" prefix if present
+    const cleanUnit = unit
+      .toLowerCase()
+      .replace(/^per\s+/i, "")
+      .trim();
+
+    // If quantity is 1, return singular form
+    if (quantity === 1) {
+      return cleanUnit;
+    }
+
+    // Pluralization rules
+    const pluralRules = {
+      bottle: "bottles",
+      item: "items",
+      pack: "packs",
+      box: "boxes",
+      kg: "kgs",
+      g: "gs",
+      mg: "mgs",
+      ml: "mls",
+      l: "ls",
+      liter: "liters",
+      m: "ms",
+      cm: "cms",
+      mm: "mms",
+      "m²": "m²",
+      "m³": "m³",
+      cl: "cls",
+    };
+
+    const lowerUnit = cleanUnit.toLowerCase();
+    return pluralRules[lowerUnit] || cleanUnit + "s";
+  };
+
   // Filter options
   const filterOptions = [
     { label: "Product Name", value: "productname" },
@@ -55,35 +94,24 @@ export default function AllProducts() {
   // Fetch all products on component mount
   useEffect(() => {
     fetchProducts();
-  }, [currentPage, rowsPerPage]);
-
-  // Filter products based on active filters
-  useEffect(() => {
-    let filtered = [...products];
-
-    // Apply all active filters (conjunction)
-    if (activeFilters.length > 0) {
-      filtered = filtered.filter((product) => {
-        return activeFilters.every((filter) => {
-          const fieldValue = product[filter.field];
-          if (fieldValue === null || fieldValue === undefined) return false;
-
-          const productValue = String(fieldValue).toLowerCase();
-          const filterVal = filter.value.toLowerCase();
-
-          return productValue.includes(filterVal);
-        });
-      });
-    }
-
-    setFilteredProducts(filtered);
-  }, [activeFilters, products]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, rowsPerPage, activeFilters]);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
       const skip = currentPage * rowsPerPage;
-      const result = await getAllProducts(skip, rowsPerPage);
+      // Get the first active filter (if any)
+      const filter = activeFilters.length > 0 ? activeFilters[0] : null;
+      const filterField = filter ? filter.field : null;
+      const filterValue = filter ? filter.value : "";
+
+      const result = await getAllProducts(
+        skip,
+        rowsPerPage,
+        filterField,
+        filterValue,
+      );
       if (result.success) {
         const data = result.data.items || result.data;
         setProducts(data);
@@ -167,7 +195,7 @@ export default function AllProducts() {
 
     // Check if filter already exists
     const exists = activeFilters.some(
-      (f) => f.field === filterField && f.value === filterValue.trim()
+      (f) => f.field === filterField && f.value === filterValue.trim(),
     );
 
     if (exists) {
@@ -201,8 +229,8 @@ export default function AllProducts() {
         (f) =>
           !(
             f.field === filterToRemove.field && f.value === filterToRemove.value
-          )
-      )
+          ),
+      ),
     );
   };
 
@@ -223,6 +251,62 @@ export default function AllProducts() {
       currency: "INR",
       minimumFractionDigits: 2,
     }).format(price);
+  };
+
+  // Helper function to format unit price display
+  const formatUnitPrice = (
+    price,
+    unit,
+    unitValue,
+    bottleCapacity,
+    bottleUnit,
+  ) => {
+    if (!unit) return null;
+
+    // Debug logging to check values
+    console.log("formatUnitPrice called with:", {
+      price,
+      unit,
+      unitValue,
+      bottleCapacity,
+      bottleUnit,
+      type: typeof unitValue,
+    });
+
+    // Remove "per" prefix if present
+    const cleanUnit = unit
+      .toLowerCase()
+      .replace(/^per\s+/i, "")
+      .trim();
+
+    // Special handling for bottles - show bottle capacity
+    if (cleanUnit === "bottle") {
+      if (bottleCapacity && bottleUnit) {
+        // Display as: / bottle(500ml) or / bottle(1l)
+        return `/ bottle(${bottleCapacity}${bottleUnit})`;
+      }
+      // Fallback if no capacity info
+      return `/ bottle`;
+    }
+
+    // Convert to numbers explicitly
+    const numPrice = Number(price);
+    const numUnitValue = Number(unitValue);
+
+    console.log("Converted to numbers:", { numPrice, numUnitValue });
+
+    // If unitValue is provided (e.g., 0.5 for 0.5kg), calculate price per full unit
+    if (numUnitValue && numUnitValue > 0) {
+      // Calculate price per 1 full unit
+      // Example: price=100, unitValue=0.5 (half kg) → 100/0.5 = 200 per 1 kg
+      const pricePerFullUnit = (numPrice / numUnitValue).toFixed(2);
+      console.log("✓ Calculated pricePerFullUnit:", pricePerFullUnit);
+      return `/ 1${cleanUnit} (₹${pricePerFullUnit}/${cleanUnit})`;
+    }
+
+    console.log("No unitValue, showing default");
+    // Otherwise just show per unit
+    return `/ ${cleanUnit}`;
   };
 
   const getStockSeverity = (stock) => {
@@ -410,8 +494,8 @@ export default function AllProducts() {
               {loading
                 ? "Loading..."
                 : filteredProducts.length === 0
-                ? "No products found"
-                : `Showing ${filteredProducts.length} of ${products.length} product(s)`}
+                  ? "No products found"
+                  : `Showing ${filteredProducts.length} of ${products.length} product(s)`}
             </span>
           </div>
         </div>
@@ -463,8 +547,26 @@ export default function AllProducts() {
                   <div className="price-stock-row">
                     <div className="price-section">
                       <span className="price-value">
-                        {formatPrice(product.price)}
+                        {/* For bottles, show price as-is; for others with unitvalue, show price per full unit */}
+                        {product.unit && product.unit.toLowerCase() === "bottle"
+                          ? formatPrice(product.price)
+                          : product.unitvalue && product.unitvalue > 0
+                            ? formatPrice(product.price / product.unitvalue)
+                            : formatPrice(product.price)}
                       </span>
+                      {product.unit && (
+                        <span className="unit-price-text">
+                          {product.unit.toLowerCase() === "bottle"
+                            ? formatUnitPrice(
+                                product.price,
+                                product.unit,
+                                product.unitvalue,
+                                product.bottle_capacity,
+                                product.bottle_unit,
+                              )
+                            : `/ ${product.unit}`}
+                        </span>
+                      )}
                       {product.discount > 0 && (
                         <span className="discount-text">
                           -{product.discount}%
@@ -472,9 +574,10 @@ export default function AllProducts() {
                       )}
                     </div>
                     <Tag
-                      value={`${product.quantity || 0} ${
-                        product.unit || "units"
-                      }`}
+                      value={`${Number(product.quantity).toFixed(2)} ${formatUnitDisplay(
+                        Number(product.quantity),
+                        product.unit,
+                      )}`}
                       severity={getStockSeverity(product.quantity || 0)}
                       className="stock-tag"
                     />
@@ -673,7 +776,7 @@ export default function AllProducts() {
                 )}
                 <div className="detail-item">
                   <label>Stock Quantity:</label>
-                  <span>{viewingProduct.quantity || 0}</span>
+                  <span>{Number(viewingProduct.quantity).toFixed(2)}</span>
                 </div>
                 {viewingProduct.unit && (
                   <div className="detail-item">
@@ -714,7 +817,7 @@ export default function AllProducts() {
                       <label>Expiry Date:</label>
                       <span>
                         {new Date(
-                          viewingProduct.expirydate
+                          viewingProduct.expirydate,
                         ).toLocaleDateString()}
                       </span>
                     </div>

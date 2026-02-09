@@ -13,7 +13,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import LoadingSpinner from "./LoadingSpinner";
 import QRCodeScanner from "./QRCodeScanner";
 import PrintSlip from "./PrintSlip";
+import CategoryManagement from "./CategoryManagement";
+import UnitManagement from "./UnitManagement";
 import { fetchCategories } from "../services/api/categoryService";
+import { fetchUnitsForDropdown } from "../services/api/unitService";
 import { useDependentDataLoader } from "../hooks/useDependentDataLoader";
 import api from "../services/api/axios";
 import {
@@ -39,44 +42,7 @@ export default function AddProducts() {
   const editProduct = location.state?.product;
   const isEditMode = location.state?.isEdit || false;
 
-  // Unit categories configuration
-  const units = [
-    {
-      category: "Weight",
-      items: [
-        { name: "Milligram", symbol: "mg", label: "Milligram (mg)" },
-        { name: "Gram", symbol: "g", label: "Gram (g)" },
-        { name: "Kilogram", symbol: "kg", label: "Kilogram (kg)" },
-      ],
-    },
-    {
-      category: "Volume",
-      items: [
-        { name: "Milliliter", symbol: "ml", label: "Milliliter (ml)" },
-        { name: "Centiliter", symbol: "cl", label: "Centiliter (cl)" },
-        { name: "Liter", symbol: "L", label: "Liter (L)" },
-        { name: "Cubic meter", symbol: "m³", label: "Cubic meter (m³)" },
-      ],
-    },
-    {
-      category: "Size",
-      items: [
-        { name: "Millimeter", symbol: "mm", label: "Millimeter (mm)" },
-        { name: "Centimeter", symbol: "cm", label: "Centimeter (cm)" },
-        { name: "Meter", symbol: "m", label: "Meter (m)" },
-      ],
-    },
-    {
-      category: "Area",
-      items: [
-        { name: "Square meter", symbol: "m²", label: "Square meter (m²)" },
-      ],
-    },
-    {
-      category: "Per item",
-      items: [{ name: "Item", symbol: "item", label: "Item (item)" }],
-    },
-  ];
+  // Units will be fetched from the database via useDependentDataLoader
 
   // Product form state
   const [productForm, setProductForm] = useState({
@@ -84,6 +50,8 @@ export default function AddProducts() {
     description: "",
     price: "",
     openingStock: "",
+    addQuantity: "",
+    currentQuantity: 0,
     unitValue: "",
     skuSuffix: "",
     category: null,
@@ -107,6 +75,8 @@ export default function AddProducts() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [printSlipVisible, setPrintSlipVisible] = useState(false);
   const [slipProduct, setSlipProduct] = useState(null);
+  const [categoryDialogVisible, setCategoryDialogVisible] = useState(false);
+  const [unitDialogVisible, setUnitDialogVisible] = useState(false);
 
   // Custom Labels state for product
   const [labelValueMappings, setLabelValueMappings] = useState({});
@@ -124,6 +94,10 @@ export default function AddProducts() {
         key: "categories",
         fetcher: () => fetchCategories(),
       },
+      {
+        key: "units",
+        fetcher: () => fetchUnitsForDropdown(),
+      },
     ],
     [],
   );
@@ -133,12 +107,14 @@ export default function AddProducts() {
     data: dependentData,
     isLoading,
     error,
+    refetch,
   } = useDependentDataLoader(dependencies, {
     parallel: false,
     retryCount: 3,
   });
 
   const categories = dependentData.categories || [];
+  const units = dependentData.units || [];
 
   // Handle dependent data errors
   useEffect(() => {
@@ -151,14 +127,36 @@ export default function AddProducts() {
         life: 5000,
       });
     }
+    if (error && error.key === "units") {
+      toast.current?.show({
+        severity: "error",
+        summary: "Failed to Load Units",
+        detail: "Could not fetch units from server. Please refresh the page.",
+        life: 5000,
+      });
+    }
   }, [error]);
 
   // Populate form in edit mode
   useEffect(() => {
-    if (isEditMode && editProduct && categories.length > 0) {
+    if (
+      isEditMode &&
+      editProduct &&
+      categories.length > 0 &&
+      units.length > 0
+    ) {
       // Find the matching category ID from category name
       const matchedCategory = categories.find(
         (cat) => cat.name === editProduct.category,
+      );
+
+      // Debug: Log unit information
+      console.log("=== EDIT MODE DEBUG ===");
+      console.log("editProduct.unit:", editProduct.unit);
+      console.log("Units available:", units);
+      console.log(
+        "All available unit symbols:",
+        units.flatMap((u) => u.items.map((i) => i.symbol)),
       );
 
       setProductForm({
@@ -166,6 +164,8 @@ export default function AddProducts() {
         description: editProduct.description || "",
         price: editProduct.price || "",
         openingStock: editProduct.quantity || "",
+        addQuantity: "",
+        currentQuantity: editProduct.quantity || 0,
         unitValue: editProduct.unitvalue || "",
         skuSuffix: editProduct.sku || "",
         category: matchedCategory?.id || null, // Store ID, not object
@@ -209,11 +209,50 @@ export default function AddProducts() {
         setProductLabels(labels);
       }
     }
-  }, [isEditMode, editProduct, categories]);
+  }, [isEditMode, editProduct, categories, units]);
+
+  // Reset form when switching from edit to add mode
+  useEffect(() => {
+    if (!isEditMode && !editProduct) {
+      setProductForm({
+        name: "",
+        description: "",
+        price: "",
+        openingStock: "",
+        addQuantity: "",
+        currentQuantity: 0,
+        unitValue: "",
+        skuSuffix: "",
+        category: null,
+        unit: null,
+        expiryDate: "",
+        mfgDate: "",
+        barcode: "",
+        brand: "",
+        supplierName: "",
+        supplierContact: "",
+        cgst: "",
+        discount: "",
+      });
+      setProductImages([]);
+      setProductLabels([]);
+      setLabelValueMappings({});
+      setDbLabelValues({});
+    }
+  }, [isEditMode, editProduct]);
 
   // Form field change handler
   const handleChange = (field, value) => {
     setProductForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Clear add quantity handler
+  const handleClearAddQuantity = () => {
+    setProductForm((prev) => ({
+      ...prev,
+      addQuantity: "",
+      currentQuantity: 0,
+    }));
   };
 
   // Custom Labels helpers for products
@@ -534,11 +573,36 @@ export default function AddProducts() {
       });
       return;
     }
+    if (!productForm.skuSuffix?.trim()) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Validation Error",
+        detail: "SKU is required",
+        life: 3000,
+      });
+      return;
+    }
     if (!productForm.price || parseFloat(productForm.price) <= 0) {
       toast.current?.show({
         severity: "warn",
         summary: "Validation Error",
         detail: "Price must be greater than 0",
+        life: 3000,
+      });
+      return;
+    }
+
+    // Validate opening stock or add quantity
+    const stockValue = isEditMode
+      ? productForm.addQuantity
+      : productForm.openingStock;
+    if (!stockValue || parseInt(stockValue) <= 0) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Validation Error",
+        detail: isEditMode
+          ? "Quantity to add must be greater than 0"
+          : "Opening stock must be greater than 0",
         life: 3000,
       });
       return;
@@ -569,14 +633,17 @@ export default function AddProducts() {
         category: categoryName, // Use looked-up category name
         price: parseFloat(productForm.price),
         unitvalue: productForm.unitValue
-          ? parseInt(productForm.unitValue)
+          ? parseFloat(productForm.unitValue)
           : null,
         unit: productForm.unit || null, // Unit is already the symbol string
         discount: productForm.discount ? parseInt(productForm.discount) : 0,
         gst: productForm.cgst ? parseInt(productForm.cgst) : 0,
-        openingstock: productForm.openingStock
-          ? parseInt(productForm.openingStock)
-          : 0,
+        openingstock: isEditMode
+          ? productForm.currentQuantity +
+            (parseInt(productForm.addQuantity) || 0)
+          : productForm.openingStock
+            ? parseInt(productForm.openingStock)
+            : 0,
         mfgdate: productForm.mfgDate
           ? productForm.mfgDate.toISOString().split("T")[0]
           : null,
@@ -882,24 +949,25 @@ export default function AddProducts() {
           </div>
           <div className="flex items-center w-full justify-between mt-3">
             <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
-              Barcode
+              Barcode <span className="text-red-500">*</span>
             </label>
             <InputText
               className="p-inputtext-sm w-full p-[5px]!"
               value={productForm.barcode}
+              keyfilter="int"
               onChange={(e) => handleChange("barcode", e.target.value)}
-              placeholder="Scan, generate, or enter barcode"
+              placeholder="Scan, generate, or enter barcode (required)"
             />
           </div>
           <div className="flex items-center w-full justify-between mt-3">
             <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
-              SKU
+              SKU <span className="text-red-500">*</span>
             </label>
             <InputText
               className="p-inputtext-sm w-full p-[5px]!"
               value={productForm.skuSuffix}
               onChange={(e) => handleChange("skuSuffix", e.target.value)}
-              placeholder="Stock Keeping Unit"
+              placeholder="Stock Keeping Unit (required)"
             />
           </div>
         </div>
@@ -907,13 +975,13 @@ export default function AddProducts() {
         {/* Basic Product Information */}
         <div className="flex items-center w-full justify-between">
           <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
-            Product Name
+            Product Name <span className="text-red-500">*</span>
           </label>
           <InputText
             className="p-inputtext-sm w-full p-[5px]!"
             value={productForm.name}
             onChange={(e) => handleChange("name", e.target.value)}
-            placeholder="Enter product name"
+            placeholder="Enter product name (required)"
           />
         </div>
 
@@ -953,6 +1021,17 @@ export default function AddProducts() {
                 style={{ fontSize: "0.8rem", color: "#3b82f6" }}
               ></i>
             )}
+            <Button
+              icon="pi pi-plus"
+              rounded
+              text
+              size="small"
+              severity="success"
+              onClick={() => setCategoryDialogVisible(true)}
+              tooltip="Add Category"
+              tooltipOptions={{ position: "top" }}
+              style={{ width: "1.5rem", height: "1.5rem" }}
+            />
           </div>
 
           <Dropdown
@@ -974,18 +1053,19 @@ export default function AddProducts() {
 
       {/* Pricing Details Section */}
       <div className="bg-blue-100 rounded p-4 pt-3 mt-3">
-        <label className="label-add-product text-[1rem] font-bold">
+        <label className="label-add-product text-[1.1rem] font-extrabold">
           Pricing Details
         </label>
         <div className="flex flex-col items-center w-full justify-between mt-3">
           <div className="flex items-center flex-wrap md:flex-row gap-2 w-full">
             <label className="label-add-product text-[0.8rem] min-w-[100px] font-bold">
-              Price
+              Price <span className="text-red-500">*</span>
             </label>
             <InputText
               className="p-inputtext-sm w-full flex-1 p-[5px]!"
               value={productForm.price}
-              placeholder="0.00"
+              placeholder="0.00 (required)"
+              keyfilter="pnum"
               onChange={(e) => handleChange("price", e.target.value)}
             />
           </div>
@@ -995,15 +1075,33 @@ export default function AddProducts() {
             </label>
             <InputText
               className="p-inputtext-sm w-full flex-1 p-[5px]!"
-              value={productForm.unitValue}
-              placeholder="00"
-              onChange={(e) => handleChange("unitValue", e.target.value)}
+              value="1"
+              readOnly
             />
           </div>
           <div className="flex items-center flex-wrap md:flex-row gap-2 w-full mt-3">
-            <label className="label-add-product text-[0.8rem] min-w-[100px] font-bold">
-              Unit
-            </label>
+            <div className="flex items-center gap-2 min-w-[100px]">
+              <label className="label-add-product text-[0.8rem] font-bold">
+                Unit
+              </label>
+              {isLoading && (
+                <i
+                  className="pi pi-spinner pi-spin"
+                  style={{ fontSize: "0.8rem", color: "#3b82f6" }}
+                ></i>
+              )}
+              <Button
+                icon="pi pi-plus"
+                rounded
+                text
+                size="small"
+                severity="success"
+                onClick={() => setUnitDialogVisible(true)}
+                tooltip="Add Unit"
+                tooltipOptions={{ position: "top" }}
+                style={{ width: "1.5rem", height: "1.5rem" }}
+              />
+            </div>
             <Dropdown
               className="flex-1 flex-wrap w-full"
               value={productForm.unit}
@@ -1014,7 +1112,7 @@ export default function AddProducts() {
               optionGroupLabel="category"
               optionGroupChildren="items"
               onChange={(e) => handleChange("unit", e.value)}
-              placeholder="Select Unit"
+              placeholder={isLoading ? "Loading units..." : "Select Unit"}
               filter
             />
           </div>
@@ -1026,6 +1124,7 @@ export default function AddProducts() {
               className="p-inputtext-sm w-full flex-1 p-[5px]!"
               value={productForm.discount}
               placeholder="0.00"
+              keyfilter="pnum"
               onChange={(e) => handleChange("discount", e.target.value)}
             />
           </div>
@@ -1037,6 +1136,7 @@ export default function AddProducts() {
               className="p-inputtext-sm w-full flex-1 p-[5px]!"
               value={productForm.cgst}
               placeholder="0.00"
+              keyfilter="pnum"
               onChange={(e) => handleChange("cgst", e.target.value)}
             />
           </div>
@@ -1044,15 +1144,52 @@ export default function AddProducts() {
       </div>
 
       {/* Stock & Dates */}
+      {isEditMode && (
+        <div className="flex items-center w-full justify-between mt-3 gap-2">
+          <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
+            Current Quantity
+          </label>
+          <div className="p-inputgroup w-full" style={{ display: "flex" }}>
+            <InputText
+              className="p-inputtext-sm p-[5px]! bg-gray-100"
+              value={
+                productForm.currentQuantity +
+                (parseInt(productForm.addQuantity) || 0)
+              }
+              readOnly
+              disabled
+              placeholder="Current quantity"
+              style={{ flex: 1 }}
+            />
+            <Button
+              icon="pi pi-times"
+              className="p-button-sm p-button-danger"
+              onClick={handleClearAddQuantity}
+              style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center w-full justify-between mt-3">
         <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
-          Opening Stock
+          {isEditMode ? "Add to Stock" : "Opening Stock"}{" "}
+          <span className="text-red-500">*</span>
         </label>
         <InputText
           className="p-inputtext-sm w-full p-[5px]!"
-          value={productForm.openingStock}
-          onChange={(e) => handleChange("openingStock", e.target.value)}
-          placeholder="Enter opening stock"
+          value={
+            isEditMode ? productForm.addQuantity : productForm.openingStock
+          }
+          onChange={(e) => {
+            const value = e.target.value.replace(/[^0-9]/g, "");
+            handleChange(isEditMode ? "addQuantity" : "openingStock", value);
+          }}
+          placeholder={
+            isEditMode
+              ? "Enter quantity to add (must be > 0)"
+              : "Enter opening stock (must be > 0)"
+          }
         />
       </div>
 
@@ -1332,6 +1469,49 @@ export default function AddProducts() {
         onHide={() => setPrintSlipVisible(false)}
         product={slipProduct}
       />
+
+      {/* Category Management Dialog */}
+      <Dialog
+        header="Category Management"
+        visible={categoryDialogVisible}
+        style={{ width: "90vw", maxWidth: "800px" }}
+        onHide={() => {
+          setCategoryDialogVisible(false);
+          // Refresh categories when dialog is closed
+          refetch("categories");
+        }}
+        modal
+        dismissableMask
+        draggable={false}
+        resizable={false}
+      >
+        <CategoryManagement
+          onCategoryAdded={() => {
+            // Close dialog and refresh categories when a new category is added
+            setCategoryDialogVisible(false);
+            refetch("categories");
+          }}
+        />
+      </Dialog>
+
+      {/* Unit Management Dialog */}
+      <Dialog
+        header="Unit Management"
+        visible={unitDialogVisible}
+        style={{ width: "95vw", maxWidth: "1200px", maxHeight: "90vh" }}
+        onHide={() => {
+          setUnitDialogVisible(false);
+          // Refresh units when dialog is closed
+          refetch("units");
+        }}
+        modal
+        dismissableMask
+        draggable={false}
+        resizable={false}
+        contentStyle={{ overflow: "auto" }}
+      >
+        <UnitManagement />
+      </Dialog>
     </>
   );
 }

@@ -28,16 +28,27 @@ export const addProducts = async (products) => {
 };
 
 /**
- * Get all products with pagination
+ * Get all products with pagination and filtering
  * @param {number} skip - Number of records to skip
  * @param {number} limit - Maximum number of records to return
+ * @param {string} filterField - Field to filter on (productname, productid, barcode, sku, category, brand, description)
+ * @param {string} filterValue - Value to search for
  * @returns {Promise} Response with paginated products
  */
-export const getAllProducts = async (skip = 0, limit = 12) => {
+export const getAllProducts = async (
+  skip = 0,
+  limit = 12,
+  filterField = null,
+  filterValue = "",
+) => {
   try {
-    const response = await api.get(
-      `/products/getProducts?skip=${skip}&limit=${limit}`
-    );
+    let url = `/products/getProducts?skip=${skip}&limit=${limit}`;
+
+    if (filterField && filterValue.trim()) {
+      url += `&filter_field=${filterField}&filter_value=${encodeURIComponent(filterValue.trim())}`;
+    }
+
+    const response = await api.get(url);
     return {
       success: true,
       data: response.data,
@@ -84,7 +95,7 @@ export const updateProduct = async (productId, productData) => {
   try {
     const response = await api.put(
       `/products/updateProduct/${productId}`,
-      productData
+      productData,
     );
     return {
       success: true,
@@ -137,7 +148,7 @@ export const searchProducts = async (filters = {}) => {
     if (filters.max_price) params.append("max_price", filters.max_price);
 
     const response = await api.get(
-      `/products/searchProducts?${params.toString()}`
+      `/products/searchProducts?${params.toString()}`,
     );
     return {
       success: true,

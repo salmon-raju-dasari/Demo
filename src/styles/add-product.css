@@ -1,9 +1,186 @@
-.p-dropdown .p-dropdown-label.p-placeholder {
-    padding: 5px !important;
+/* Enterprise Edition - Add Product Screen */
+
+/* Container */
+.add-product-container {
+    padding: 8px;
+    background-color: #f5f5f5;
+    min-height: 100vh;
+    font-size: 12px;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Compact PrimeReact Input Overrides */
+.p-inputtext {
+    padding: 5px 8px !important;
+    font-size: 12px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 3px !important;
+}
+
+.p-inputtext:focus {
+    border-color: #2196f3 !important;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1) !important;
 }
 
 .p-dropdown {
     flex-wrap: wrap;
+    font-size: 12px !important;
+}
+
+.p-dropdown .p-dropdown-label {
+    padding: 5px 8px !important;
+    font-size: 12px !important;
+}
+
+.p-dropdown .p-dropdown-label.p-placeholder {
+    padding: 5px 8px !important;
+}
+
+.p-button {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+}
+
+.p-button-sm {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+}
+
+.p-calendar {
+    font-size: 12px !important;
+}
+
+.p-calendar .p-inputtext {
+    font-size: 12px !important;
+}
+
+/* Tooltip - Lower z-index so it appears behind popups */
+.p-tooltip {
+    z-index: 500 !important;
+}
+
+/* Toast Notifications - Sales Screen Style */
+.p-toast {
+    opacity: 1 !important;
+    font-size: 12px !important;
+    z-index: 1000 !important;
+}
+
+.p-toast .p-toast-message {
+    margin: 0 0 8px 0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 4px !important;
+    border: none !important;
+    animation: slideIn 0.3s ease-out !important;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.p-toast .p-toast-message.p-toast-message-success {
+    background: #4caf50 !important;
+    color: white !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-success .p-toast-message-icon,
+.p-toast .p-toast-message.p-toast-message-success .p-toast-icon-close {
+    color: white !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-error {
+    background: #f44336 !important;
+    color: white !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-error .p-toast-message-icon,
+.p-toast .p-toast-message.p-toast-message-error .p-toast-icon-close {
+    color: white !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-warn {
+    background: #ff9800 !important;
+    color: white !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-warn .p-toast-message-icon,
+.p-toast .p-toast-message.p-toast-message-warn .p-toast-icon-close {
+    color: white !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-info {
+    background: #2196f3 !important;
+    color: white !important;
+}
+
+.p-toast .p-toast-message.p-toast-message-info .p-toast-message-icon,
+.p-toast .p-toast-message.p-toast-message-info .p-toast-icon-close {
+    color: white !important;
+}
+
+.p-toast .p-toast-message-content {
+    padding: 10px 16px !important;
+}
+
+.p-toast .p-toast-summary {
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    margin-bottom: 4px !important;
+}
+
+.p-toast .p-toast-detail {
+    font-size: 12px !important;
+    margin: 0 !important;
+}
+
+.p-toast .p-toast-icon-close {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    font-size: 1rem !important;
+}
+
+/* Labels */
+.label-add-product {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: #555 !important;
+    display: inline-block;
+}
+
+/* Form Sections */
+.form-section {
+    background: white;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.form-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+/* Compact spacing */
+.flex.items-center.mt-3 {
+    margin-top: 8px !important;
+}
+
+.flex.gap-2 {
+    gap: 6px !important;
 }
 
 
@@ -14,10 +191,6 @@
         width: unset !important;
         min-width: unset !important;
     }
-}
-
-.p-inputtext {
-    padding: 5px !important;
 }
 
 /* Quagga Scanner Styles */
@@ -46,4 +219,41 @@
     width: 100% !important;
     height: 400px !important;
     object-fit: cover !important;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .add-product-container {
+        padding: 4px;
+        font-size: 11px;
+    }
+
+    .p-inputtext {
+        font-size: 11px !important;
+        padding: 4px 6px !important;
+    }
+
+    .p-button {
+        font-size: 11px !important;
+        padding: 5px 10px !important;
+    }
+
+    .label-add-product {
+        font-size: 11px !important;
+    }
+
+    .form-section {
+        padding: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .add-product-container {
+        padding: 2px;
+    }
+
+    .form-section {
+        padding: 6px;
+        margin-bottom: 4px;
+    }
 }

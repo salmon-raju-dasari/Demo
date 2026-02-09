@@ -61,7 +61,7 @@ export const useDependentDataLoader = (dependencies = [], options = {}) => {
         }
       }
     },
-    [retryCount]
+    [retryCount],
   );
 
   /**
@@ -80,7 +80,7 @@ export const useDependentDataLoader = (dependencies = [], options = {}) => {
         const promises = dependencies.map((dep) =>
           fetchWithRetry(dep.fetcher, dep.key)
             .then((result) => ({ key: dep.key, result, success: true }))
-            .catch(() => ({ key: dep.key, success: false }))
+            .catch(() => ({ key: dep.key, success: false })),
         );
 
         const results = await Promise.all(promises);
@@ -130,7 +130,7 @@ export const useDependentDataLoader = (dependencies = [], options = {}) => {
         } else {
           // Retry all failed dependencies
           const retryDeps = dependencies.filter((dep) =>
-            failedKeys.has(dep.key)
+            failedKeys.has(dep.key),
           );
 
           for (const dep of retryDeps) {
@@ -141,7 +141,29 @@ export const useDependentDataLoader = (dependencies = [], options = {}) => {
         setIsLoading(false);
       }
     },
-    [dependencies, failedKeys, fetchWithRetry]
+    [dependencies, failedKeys, fetchWithRetry],
+  );
+
+  /**
+   * Refetch function to reload specific dependency (regardless of failed state)
+   */
+  const refetch = useCallback(
+    async (keyToRefetch) => {
+      if (!keyToRefetch) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const dep = dependencies.find((d) => d.key === keyToRefetch);
+        if (dep) {
+          await fetchWithRetry(dep.fetcher, dep.key);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [dependencies, fetchWithRetry],
   );
 
   return {
@@ -149,6 +171,7 @@ export const useDependentDataLoader = (dependencies = [], options = {}) => {
     isLoading,
     error,
     retry,
+    refetch,
     failedKeys,
     isSuccess:
       failedKeys.size === 0 && !isLoading && Object.keys(data).length > 0,
