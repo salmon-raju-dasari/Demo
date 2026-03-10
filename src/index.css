@@ -37,6 +37,74 @@ body {
     width: 100%;
 }
 
+/* Input Text Color - Black */
+.p-inputtext,
+.p-inputtext input,
+input.p-inputtext {
+    color: #000000 !important;
+}
+
+.p-inputtext::placeholder {
+    color: #999999 !important;
+}
+
+/* Dropdown Text Color - Black */
+.p-dropdown,
+.p-dropdown-label {
+    color: #000000 !important;
+}
+
+.p-dropdown-label {
+    color: #000000 !important;
+}
+
+.p-dropdown-items .p-dropdown-item {
+    color: #000000 !important;
+}
+
+.p-dropdown-items .p-dropdown-item:hover {
+    color: #000000 !important;
+}
+
+/* Password Input Text Color - Black */
+.p-password input {
+    color: #000000 !important;
+}
+
+.p-password input::placeholder {
+    color: #999999 !important;
+}
+
+/* Autocomplete Input Text Color - Black */
+.p-autocomplete-input,
+.p-autocomplete-input input {
+    color: #000000 !important;
+}
+
+.p-autocomplete-items .p-autocomplete-item {
+    color: #000000 !important;
+}
+
+/* Calendar Input Text Color - Black */
+.p-calendar .p-inputtext {
+    color: #000000 !important;
+}
+
+/* InputMask Text Color - Black */
+.p-inputmask,
+.p-inputmask input {
+    color: #000000 !important;
+}
+
+/* Ensure all select elements are black */
+select {
+    color: #000000 !important;
+}
+
+option {
+    color: #000000 !important;
+}
+
 .float-toast {
     width: 100% !important;
 }
@@ -59,6 +127,10 @@ body {
 .p-dropdown-label {
     width: 0;
     padding: 5px;
+}
+
+.p-card .p-card-body {
+    padding: 0.5rem;
 }
 
 .p-toast {
@@ -90,6 +162,15 @@ iframe[name^="razorpay"] {
 /* Razorpay backdrop */
 .razorpay-container::before {
     z-index: 999999998 !important;
+}
+
+.p-dialog .p-dialog-header {
+    padding: 0.4rem 0.5rem !important;
+}
+
+.p-dialog .p-dialog-content {
+    text-align: left !important;
+    padding: 0.5rem !important
 }
 
 @media (max-width: 576px) {

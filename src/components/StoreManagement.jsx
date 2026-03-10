@@ -4,9 +4,8 @@ import { InputText } from "primereact/inputtext";
 import { Dialog } from "primereact/dialog";
 import { Toast } from "primereact/toast";
 import { Card } from "primereact/card";
-import { Paginator } from "primereact/paginator";
-import { Dropdown } from "primereact/dropdown";
 import { Chip } from "primereact/chip";
+import { Dropdown } from "primereact/dropdown";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import api from "../services/api/axios";
 import "../styles/storemanagement.css";
@@ -82,7 +81,7 @@ export default function StoreManagement() {
     async (
       page = currentPage,
       limit = rowsPerPage,
-      filters = activeFilters
+      filters = activeFilters,
     ) => {
       try {
         setLoading(true);
@@ -120,7 +119,7 @@ export default function StoreManagement() {
         setLoading(false);
       }
     },
-    [currentPage, rowsPerPage, activeFilters]
+    [currentPage, rowsPerPage, activeFilters],
   );
 
   // Initial fetch on component mount
@@ -217,7 +216,7 @@ export default function StoreManagement() {
       // PrimeReact Dialog wraps content in .p-dialog-content which is the scrollable element
       setTimeout(() => {
         const dialogContent = document.querySelector(
-          ".store-dialog .p-dialog-content"
+          ".store-dialog .p-dialog-content",
         );
         if (dialogContent) {
           dialogContent.scrollTop = 0;
@@ -324,7 +323,7 @@ export default function StoreManagement() {
 
       // Check if this exact filter already exists
       const filterExists = activeFilters.some(
-        (f) => f.field === filterField && f.value === processedValue
+        (f) => f.field === filterField && f.value === processedValue,
       );
 
       if (!filterExists) {
@@ -358,7 +357,7 @@ export default function StoreManagement() {
   const removeFilter = (filterToRemove) => {
     const updatedFilters = activeFilters.filter(
       (f) =>
-        !(f.field === filterToRemove.field && f.value === filterToRemove.value)
+        !(f.field === filterToRemove.field && f.value === filterToRemove.value),
     );
     setActiveFilters(updatedFilters);
     setCurrentPage(0);
@@ -366,6 +365,19 @@ export default function StoreManagement() {
   };
 
   // Pagination change handler is inline in the JSX
+
+  // ── Pagination helpers ──────────────────────────────────
+  const strTotalPages = () => Math.ceil(totalRecords / rowsPerPage) || 1;
+
+  const strPageNumbers = () => {
+    const totalPages = strTotalPages();
+    const maxVisible = 3;
+    const displayPage = currentPage + 1;
+    let start = Math.max(1, displayPage - 1);
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  };
 
   // Dialog footer
   const dialogFooter = (
@@ -584,17 +596,60 @@ export default function StoreManagement() {
 
       {/* Pagination */}
       {!loading && stores.length > 0 && (
-        <div className="mt-4">
-          <Paginator
-            first={currentPage * rowsPerPage}
-            rows={rowsPerPage}
-            totalRecords={totalRecords}
-            rowsPerPageOptions={[10, 20, 50, 100]}
-            onPageChange={(e) => {
-              setCurrentPage(e.page);
-              setRowsPerPage(e.rows);
-            }}
-          />
+        <div className="str-pagination-section">
+          <div className="str-pagination-controls">
+            <button
+              className="str-pagination-btn"
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+              disabled={currentPage === 0}
+            >
+              ← Previous
+            </button>
+
+            <div className="str-page-numbers">
+              {strPageNumbers().map((page) => (
+                <button
+                  key={page}
+                  className={`str-page-number ${currentPage + 1 === page ? "active" : ""}`}
+                  onClick={() => setCurrentPage(page - 1)}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              className="str-pagination-btn"
+              onClick={() =>
+                setCurrentPage((p) => Math.min(strTotalPages() - 1, p + 1))
+              }
+              disabled={currentPage + 1 >= strTotalPages()}
+            >
+              Next →
+            </button>
+
+            <div className="str-page-size-selector">
+              <label>Records per page:</label>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(0);
+                }}
+                className="str-page-size-dropdown"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            <div className="str-pagination-info">
+              Page {currentPage + 1} of {strTotalPages()} (Total: {totalRecords}
+              )
+            </div>
+          </div>
         </div>
       )}
 
@@ -657,75 +712,71 @@ export default function StoreManagement() {
             )}
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="store_city" className="required">
-                City
-              </label>
-              <InputText
-                id="store_city"
-                value={storeForm.store_city}
-                onChange={(e) => handleChange("store_city", e.target.value)}
-                className={formErrors.store_city ? "p-invalid" : ""}
-                placeholder="Enter city"
-              />
-              {formErrors.store_city && (
-                <small className="p-error">{formErrors.store_city}</small>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="store_state" className="required">
-                State
-              </label>
-              <InputText
-                id="store_state"
-                value={storeForm.store_state}
-                onChange={(e) => handleChange("store_state", e.target.value)}
-                className={formErrors.store_state ? "p-invalid" : ""}
-                placeholder="Enter state"
-              />
-              {formErrors.store_state && (
-                <small className="p-error">{formErrors.store_state}</small>
-              )}
-            </div>
+          <div className="form-group">
+            <label htmlFor="store_city" className="required">
+              City
+            </label>
+            <InputText
+              id="store_city"
+              value={storeForm.store_city}
+              onChange={(e) => handleChange("store_city", e.target.value)}
+              className={formErrors.store_city ? "p-invalid" : ""}
+              placeholder="Enter city"
+            />
+            {formErrors.store_city && (
+              <small className="p-error">{formErrors.store_city}</small>
+            )}
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="store_country" className="required">
-                Country
-              </label>
-              <Dropdown
-                id="store_country"
-                value={storeForm.store_country}
-                options={countries}
-                onChange={(e) => handleChange("store_country", e.value)}
-                optionLabel="name"
-                placeholder="Select country"
-                className={formErrors.store_country ? "p-invalid" : ""}
-                filter
-              />
-              {formErrors.store_country && (
-                <small className="p-error">{formErrors.store_country}</small>
-              )}
-            </div>
+          <div className="form-group">
+            <label htmlFor="store_state" className="required">
+              State
+            </label>
+            <InputText
+              id="store_state"
+              value={storeForm.store_state}
+              onChange={(e) => handleChange("store_state", e.target.value)}
+              className={formErrors.store_state ? "p-invalid" : ""}
+              placeholder="Enter state"
+            />
+            {formErrors.store_state && (
+              <small className="p-error">{formErrors.store_state}</small>
+            )}
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="store_pincode" className="required">
-                Pincode
-              </label>
-              <InputText
-                id="store_pincode"
-                value={storeForm.store_pincode}
-                onChange={(e) => handleChange("store_pincode", e.target.value)}
-                className={formErrors.store_pincode ? "p-invalid" : ""}
-                placeholder="Enter pincode"
-              />
-              {formErrors.store_pincode && (
-                <small className="p-error">{formErrors.store_pincode}</small>
-              )}
-            </div>
+          <div className="form-group">
+            <label htmlFor="store_country" className="required">
+              Country
+            </label>
+            <Dropdown
+              id="store_country"
+              value={storeForm.store_country}
+              options={countries}
+              onChange={(e) => handleChange("store_country", e.value)}
+              optionLabel="name"
+              placeholder="Select country"
+              className={formErrors.store_country ? "p-invalid" : ""}
+              filter
+            />
+            {formErrors.store_country && (
+              <small className="p-error">{formErrors.store_country}</small>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="store_pincode" className="required">
+              Pincode
+            </label>
+            <InputText
+              id="store_pincode"
+              value={storeForm.store_pincode}
+              onChange={(e) => handleChange("store_pincode", e.target.value)}
+              className={formErrors.store_pincode ? "p-invalid" : ""}
+              placeholder="Enter pincode"
+            />
+            {formErrors.store_pincode && (
+              <small className="p-error">{formErrors.store_pincode}</small>
+            )}
           </div>
         </div>
       </Dialog>

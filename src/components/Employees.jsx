@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
+import { MultiSelect } from "primereact/multiselect";
 import { Dialog } from "primereact/dialog";
 import { Toast } from "primereact/toast";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
@@ -9,7 +10,6 @@ import { InputMask } from "primereact/inputmask";
 import { Card } from "primereact/card";
 import { Calendar } from "primereact/calendar";
 import { AutoComplete } from "primereact/autocomplete";
-import { Paginator } from "primereact/paginator";
 import { Chip } from "primereact/chip";
 import api from "../services/api/axios";
 import "../styles/employees.css";
@@ -43,16 +43,8 @@ export default function Employees() {
     { name: "South Africa", code: "ZA", dialCode: "+27" },
   ];
 
-  // Employee roles
-  const roles = [
-    { label: "Owner", value: "owner" },
-    { label: "Admin", value: "admin" },
-    { label: "Manager", value: "manager" },
-    { label: "Cashier", value: "cashier" },
-    { label: "Stock Keeper", value: "stock_keeper" },
-    { label: "Sales Representative", value: "sales_rep" },
-    { label: "Supervisor", value: "supervisor" },
-  ];
+  // Employee roles - fetched from database
+  const [dbRoles, setDbRoles] = useState([]);
 
   // Employee form state (matches backend Employee model)
   const [employeeForm, setEmployeeForm] = useState({
@@ -66,7 +58,7 @@ export default function Employees() {
     city: "",
     state: "",
     country: undefined,
-    role: undefined,
+    role_ids: [], // Multiple roles
     joining_date: undefined,
     password: "", // Required for creating new employee
     store_id: undefined, // Store assignment
@@ -140,7 +132,7 @@ export default function Employees() {
         .flatMap((e) => e.custom_fields || [])
         .flatMap((fieldObj) => Object.keys(fieldObj))
         .filter(Boolean)
-        .filter((n) => !commonLabelNames.includes(n) && !labelValueMappings[n])
+        .filter((n) => !commonLabelNames.includes(n) && !labelValueMappings[n]),
     ),
   ].map((n) => (typeof n === "string" ? { label: n, value: n } : n));
 
@@ -174,9 +166,12 @@ export default function Employees() {
   const handleChange = (field, value) => {
     setEmployeeForm((prev) => {
       const updated = { ...prev, [field]: value };
-      // When role is set to "owner", clear the store_id value
-      if (field === "role" && value === "owner") {
-        updated.store_id = null;
+      // When role_id is set to owner (find owner role name from dbRoles)
+      if (field === "role_id") {
+        const selectedRole = dbRoles.find((r) => r.value === value);
+        if (selectedRole && selectedRole.role_name === "owner") {
+          updated.store_id = null;
+        }
       }
       return updated;
     });
@@ -195,7 +190,7 @@ export default function Employees() {
     async (
       page = currentPage,
       limit = rowsPerPage,
-      filters = activeFilters
+      filters = activeFilters,
     ) => {
       try {
         setLoading(true);
@@ -261,7 +256,7 @@ export default function Employees() {
         setLoading(false);
       }
     },
-    [currentPage, rowsPerPage, activeFilters]
+    [currentPage, rowsPerPage, activeFilters],
   );
 
   // Fetch custom field labels from backend (custom_labels table)
@@ -280,7 +275,7 @@ export default function Employees() {
     if (!labelName) return;
     try {
       const response = await api.get(
-        `/custom-labels-values/${encodeURIComponent(labelName)}`
+        `/custom-labels-values/${encodeURIComponent(labelName)}`,
       );
       setDbLabelValues((prev) => ({
         ...prev,
@@ -321,6 +316,28 @@ export default function Employees() {
     }
   }, []);
 
+  // Fetch roles from database
+  const fetchRoles = useCallback(async () => {
+    try {
+      const response = await api.get("/roles/");
+      // Convert role data to dropdown format with role ID as value
+      const rolesData = Array.isArray(response.data)
+        ? response.data.map((role) => ({
+            label:
+              role.role_name.charAt(0).toUpperCase() +
+              role.role_name.slice(1).replace(/_/g, " "),
+            value: role.id, // Use role.id instead of role_name
+            role_name: role.role_name, // Store role_name for later reference
+          }))
+        : [];
+      setDbRoles(rolesData);
+      console.log("Fetched roles:", rolesData);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      setDbRoles([]); // Set empty array on error
+    }
+  }, []);
+
   // Fetch stores from database
   const fetchStores = useCallback(async () => {
     try {
@@ -329,8 +346,8 @@ export default function Employees() {
       const storesData = response.data?.items
         ? response.data.items
         : Array.isArray(response.data)
-        ? response.data
-        : [];
+          ? response.data
+          : [];
       setStores(storesData);
       console.log("Fetched stores:", storesData);
     } catch (error) {
@@ -346,6 +363,7 @@ export default function Employees() {
     fetchCustomFieldLabels();
     // Fetch all custom labels from database to populate dropdowns
     fetchAllCustomLabels();
+    fetchRoles();
     fetchStores();
   }, [
     currentPage,
@@ -353,6 +371,7 @@ export default function Employees() {
     fetchEmployees,
     fetchCustomFieldLabels,
     fetchAllCustomLabels,
+    fetchRoles,
     fetchStores,
   ]);
 
@@ -368,7 +387,7 @@ export default function Employees() {
       city: "",
       state: "",
       country: null,
-      role: null,
+      role_ids: [],
       joining_date: null,
       password: "",
       store_id: null,
@@ -414,7 +433,17 @@ export default function Employees() {
       city: employee.city,
       state: employee.state,
       country: countries.find((c) => c.name === employee.country),
-      role: employee.role,
+      role_ids:
+        employee.role_names && Array.isArray(employee.role_names)
+          ? dbRoles
+              .filter((r) =>
+                employee.role_names.some(
+                  (roleName) =>
+                    r.role_name.toLowerCase() === roleName.toLowerCase(),
+                ),
+              )
+              .map((r) => r.value)
+          : [], // Get role IDs from role_names
       joining_date: joiningDateObj,
       password: "", // Don't load password when editing
       store_id: employee.store_id || null,
@@ -433,8 +462,8 @@ export default function Employees() {
             name,
             value,
             saved: true,
-          }))
-        )
+          })),
+        ),
       );
     } else {
       setEmployeeLabels([]);
@@ -443,18 +472,6 @@ export default function Employees() {
 
   // Delete employee with confirmation
   const handleDeleteEmployee = (emp_id, employeeRole, employeeName) => {
-    // Prevent deletion of owners
-    if (employeeRole === "owner") {
-      toast.current?.show({
-        severity: "warn",
-        summary: "Cannot Delete Owner",
-        detail:
-          "Owner accounts with associated business cannot be deleted. Remove the business first.",
-        life: 4000,
-      });
-      return;
-    }
-
     confirmDialog({
       message: `Are you sure you want to delete "${employeeName}"?`,
       header: "Confirm Delete",
@@ -516,12 +533,16 @@ export default function Employees() {
       errors.phone_number = "Phone number is required";
     }
 
-    if (!employeeForm.role) {
-      errors.role = "Role is required";
+    if (!employeeForm.role_ids || employeeForm.role_ids.length === 0) {
+      errors.role_ids = "At least one role is required";
     }
 
     // Store is optional for owner role
-    if (!employeeForm.store_id && employeeForm.role !== "owner") {
+    const isOwner = employeeForm.role_ids?.some(
+      (roleId) =>
+        dbRoles.find((r) => r.value === roleId)?.role_name === "owner",
+    );
+    if (!employeeForm.store_id && !isOwner) {
       errors.store_id = "Store is required";
     }
 
@@ -537,7 +558,7 @@ export default function Employees() {
       // PrimeReact Dialog wraps content in .p-dialog-content which is the scrollable element
       setTimeout(() => {
         const dialogContent = document.querySelector(
-          ".employee-dialog .p-dialog-content"
+          ".employee-dialog .p-dialog-content",
         );
         if (dialogContent) {
           dialogContent.scrollTop = 0;
@@ -556,10 +577,10 @@ export default function Employees() {
       const formattedJoiningDate = employeeForm.joining_date
         ? `${String(employeeForm.joining_date.getDate()).padStart(
             2,
-            "0"
+            "0",
           )}/${String(employeeForm.joining_date.getMonth() + 1).padStart(
             2,
-            "0"
+            "0",
           )}/${employeeForm.joining_date.getFullYear()}`
         : null;
 
@@ -569,7 +590,7 @@ export default function Employees() {
         .map((l) => ({ [l.name]: l.value }));
 
       console.log("Employee Form:", employeeForm);
-      console.log("Role Value:", employeeForm.role);
+      console.log("Role Value:", employeeForm.role_id);
 
       const employeeData = {
         name: employeeForm.name,
@@ -580,10 +601,14 @@ export default function Employees() {
         city: employeeForm.city || null,
         state: employeeForm.state || null,
         country: employeeForm.country?.name || null,
-        role: employeeForm.role,
         joining_date: formattedJoiningDate,
         custom_fields: customFields.length > 0 ? customFields : null,
       };
+
+      // Add role_ids if roles are selected
+      if (employeeForm.role_ids && employeeForm.role_ids.length > 0) {
+        employeeData.role_ids = employeeForm.role_ids;
+      }
 
       // Only include store_id if it has a value (optional for owner role)
       if (employeeForm.store_id) {
@@ -602,6 +627,13 @@ export default function Employees() {
           await api.put(`/employees/${editingId}`, {
             ...employeeData,
             password: employeeForm.password,
+          });
+        }
+
+        // If role_ids provided, use the multi-role assignment endpoint
+        if (employeeForm.role_ids && employeeForm.role_ids.length > 0) {
+          await api.post(`/roles/${editingId}/assign-roles`, {
+            role_ids: employeeForm.role_ids,
           });
         }
 
@@ -695,7 +727,7 @@ export default function Employees() {
       (l) =>
         l.id !== id &&
         l.saved &&
-        l.name.trim().toLowerCase() === label.name.trim().toLowerCase()
+        l.name.trim().toLowerCase() === label.name.trim().toLowerCase(),
     );
     if (duplicate) {
       toast.current?.show({
@@ -708,7 +740,7 @@ export default function Employees() {
     }
 
     setEmployeeLabels((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, saved: true } : l))
+      prev.map((l) => (l.id === id ? { ...l, saved: true } : l)),
     );
     toast.current?.show({
       severity: "success",
@@ -742,7 +774,7 @@ export default function Employees() {
           return { ...l, [field]: value };
         }
         return l;
-      })
+      }),
     );
   };
 
@@ -767,7 +799,7 @@ export default function Employees() {
           }
           return l;
         })
-        .filter(Boolean)
+        .filter(Boolean),
     );
   };
 
@@ -811,7 +843,7 @@ export default function Employees() {
   const removeFilter = (filterToRemove) => {
     const updatedFilters = activeFilters.filter(
       (f) =>
-        !(f.field === filterToRemove.field && f.value === filterToRemove.value)
+        !(f.field === filterToRemove.field && f.value === filterToRemove.value),
     );
     setActiveFilters(updatedFilters);
     setCurrentPage(0);
@@ -840,7 +872,7 @@ export default function Employees() {
 
       // Check if this exact filter already exists
       const filterExists = activeFilters.some(
-        (f) => f.field === filterField && f.value === processedValue
+        (f) => f.field === filterField && f.value === processedValue,
       );
 
       if (!filterExists) {
@@ -859,6 +891,19 @@ export default function Employees() {
       setFilterField(null);
       setFilterValue("");
     }
+  };
+
+  // ── Pagination helpers ──────────────────────────────────
+  const calculateTotalPages = () => Math.ceil(totalRecords / rowsPerPage) || 1;
+
+  const getPageNumbers = () => {
+    const totalPages = calculateTotalPages();
+    const maxVisible = 3;
+    const displayPage = currentPage + 1;
+    let start = Math.max(1, displayPage - 1);
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   };
 
   // Render employee card
@@ -887,10 +932,16 @@ export default function Employees() {
             <i className="pi pi-envelope info-icon"></i>
             <span className="info-text">{employee.email}</span>
           </div>
-          {employee.role && (
+          {employee.role_names && employee.role_names.length > 0 && (
             <div className="employee-info-row">
               <i className="pi pi-briefcase info-icon"></i>
-              <span className="info-text role-badge">{employee.role}</span>
+              <div className="role-badges-inline">
+                {employee.role_names.map((role, idx) => (
+                  <span key={idx} className="info-text role-badge">
+                    {role}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
           {employee.store_id && (
@@ -930,17 +981,10 @@ export default function Employees() {
             onClick={() =>
               handleDeleteEmployee(
                 employee.emp_id,
-                employee.role,
-                employee.name
+                employee.role_name,
+                employee.name,
               )
             }
-            disabled={employee.role === "owner"}
-            tooltip={
-              employee.role === "owner"
-                ? "Cannot delete owner with associated business"
-                : ""
-            }
-            tooltipOptions={{ position: "top" }}
           />
         </div>
       </Card>
@@ -1104,24 +1148,26 @@ export default function Employees() {
             />
           </div>
 
-          {/* Role */}
+          {/* Multiple Roles */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="emp-role" className="text-[0.85rem] font-semibold">
-              Role <span className="text-red-500">*</span>
+            <label htmlFor="emp-roles" className="text-[0.85rem] font-semibold">
+              Roles <span className="text-red-500">*</span>
             </label>
-            <Dropdown
-              id="emp-role"
-              value={employeeForm.role}
-              options={roles}
-              onChange={(e) => handleChange("role", e.value)}
+            <MultiSelect
+              id="emp-roles"
+              value={employeeForm.role_ids}
+              options={dbRoles}
+              onChange={(e) => handleChange("role_ids", e.value)}
               optionLabel="label"
               optionValue="value"
-              placeholder="Select role"
-              className={`w-full ${formErrors.role ? "p-invalid" : ""}`}
+              placeholder="Select one or more roles"
+              className={`w-full ${formErrors.role_ids ? "p-invalid" : ""}`}
+              display="chip"
               filter
+              emptyMessage="No roles available"
             />
-            {formErrors.role && (
-              <small className="text-red-500">{formErrors.role}</small>
+            {formErrors.role_ids && (
+              <small className="text-red-500">{formErrors.role_ids}</small>
             )}
           </div>
 
@@ -1129,7 +1175,11 @@ export default function Employees() {
           <div className="flex flex-col gap-2">
             <label htmlFor="emp-store" className="text-[0.85rem] font-semibold">
               Store{" "}
-              {employeeForm.role === "owner" ? (
+              {employeeForm.role_ids?.some(
+                (roleId) =>
+                  dbRoles.find((r) => r.value === roleId)?.role_name ===
+                  "owner",
+              ) ? (
                 <span className="text-gray-500">(Optional)</span>
               ) : (
                 <span className="text-red-500">*</span>
@@ -1145,7 +1195,11 @@ export default function Employees() {
               placeholder="Select store"
               className="w-full"
               filter
-              disabled={employeeForm.role === "owner"}
+              disabled={employeeForm.role_ids?.some(
+                (roleId) =>
+                  dbRoles.find((r) => r.value === roleId)?.role_name ===
+                  "owner",
+              )}
               emptyMessage="No stores available"
             />
             {formErrors.store_id && (
@@ -1365,12 +1419,12 @@ export default function Employees() {
                 filterField === "emp_id"
                   ? "Enter Employee ID (e.g., 1000 or USR1000)"
                   : filterField
-                  ? `Search by ${
-                      getFilterOptions().find(
-                        (opt) => opt.value === filterField
-                      )?.label || ""
-                    }`
-                  : "Select a field first"
+                    ? `Search by ${
+                        getFilterOptions().find(
+                          (opt) => opt.value === filterField,
+                        )?.label || ""
+                      }`
+                    : "Select a field first"
               }
               className="filter-input"
               disabled={!filterField}
@@ -1459,17 +1513,62 @@ export default function Employees() {
 
           {/* Pagination */}
           {!loading && filteredEmployees.length > 0 && (
-            <div className="mt-4">
-              <Paginator
-                first={currentPage * rowsPerPage}
-                rows={rowsPerPage}
-                totalRecords={totalRecords}
-                rowsPerPageOptions={[10, 20, 50, 100]}
-                onPageChange={(e) => {
-                  setCurrentPage(e.page);
-                  setRowsPerPage(e.rows);
-                }}
-              />
+            <div className="emp-pagination-section">
+              <div className="emp-pagination-controls">
+                <button
+                  className="emp-pagination-btn"
+                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                  disabled={currentPage === 0}
+                >
+                  ← Previous
+                </button>
+
+                <div className="emp-page-numbers">
+                  {getPageNumbers().map((page) => (
+                    <button
+                      key={page}
+                      className={`emp-page-number ${currentPage + 1 === page ? "active" : ""}`}
+                      onClick={() => setCurrentPage(page - 1)}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  className="emp-pagination-btn"
+                  onClick={() =>
+                    setCurrentPage((p) =>
+                      Math.min(calculateTotalPages() - 1, p + 1),
+                    )
+                  }
+                  disabled={currentPage + 1 >= calculateTotalPages()}
+                >
+                  Next →
+                </button>
+
+                <div className="emp-page-size-selector">
+                  <label>Records per page:</label>
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setCurrentPage(0);
+                    }}
+                    className="emp-page-size-dropdown"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+
+                <div className="emp-pagination-info">
+                  Page {currentPage + 1} of {calculateTotalPages()} (Total:{" "}
+                  {totalRecords})
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1512,11 +1611,19 @@ export default function Employees() {
                         viewingEmployee.store_id}
                     </p>
                   )}
-                  {viewingEmployee.role && (
-                    <span className="inline-block mt-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                      {viewingEmployee.role}
-                    </span>
-                  )}
+                  {viewingEmployee.role_names &&
+                    viewingEmployee.role_names.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {viewingEmployee.role_names.map((role, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold"
+                          >
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                 </div>
               </div>
 

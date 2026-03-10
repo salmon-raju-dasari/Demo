@@ -1,11 +1,11 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card } from "primereact/card";
 import { InputText } from "primereact/inputtext";
 import { Password } from "primereact/password";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
 import { api } from "../services/api/axios";
+import "../Login/Login.css";
 
 const OwnerRegistration = () => {
   const navigate = useNavigate();
@@ -147,134 +147,191 @@ const OwnerRegistration = () => {
   return (
     <>
       <Toast ref={toast} />
-      <div className="flex justify-content-center mt-6">
-        <Card
-          title="Register Your Business - Owner"
-          className="sm:max-w-100 w-[90%] m-auto p-2 border-round-lg shadow-2"
-        >
-          <form onSubmit={handleSubmit} className="p-fluid">
-            <div className="field mb-3">
-              <label className="block mb-2">
-                Username <span className="text-red-500">*</span>
-              </label>
-              <InputText
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Enter username"
-                className={`w-full ${errors.name ? "p-invalid" : ""}`}
-              />
-              {errors.name && (
-                <small className="p-error block mt-1">{errors.name}</small>
-              )}
+      <div className="login-container">
+        <div className="login-card">
+          {/* Header */}
+          <div className="login-header">
+            <div className="login-icon">
+              <i className="pi pi-user-plus"></i>
             </div>
-            <div className="field mb-3">
-              <label className="block mb-2">
-                Phone Number <span className="text-red-500">*</span>
-              </label>
-              <InputText
-                name="phone_number"
-                value={form.phone_number}
-                onChange={handleChange}
-                placeholder="Enter phone number"
-                className={`w-full ${errors.phone_number ? "p-invalid" : ""}`}
-              />
-              {errors.phone_number && (
-                <small className="p-error block mt-1">
-                  {errors.phone_number}
-                </small>
-              )}
-            </div>
-            <div className="field mb-3">
-              <label className="block mb-2">
-                Email <span className="text-red-500">*</span>
-              </label>
-              <InputText
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="Enter email"
-                className={`w-full ${errors.email ? "p-invalid" : ""}`}
-              />
-              {errors.email && (
-                <small className="p-error block mt-1">{errors.email}</small>
-              )}
-            </div>
-            <div className="field mb-3">
-              <label className="block mb-2">
-                Business Name <span className="text-red-500">*</span>
-              </label>
-              <InputText
-                name="business_name"
-                value={form.business_name}
-                onChange={handleChange}
-                placeholder="Enter business name"
-                className={`w-full ${errors.business_name ? "p-invalid" : ""}`}
-              />
-              {errors.business_name && (
-                <small className="p-error block mt-1">
-                  {errors.business_name}
-                </small>
-              )}
-            </div>
-            <div className="field mb-3">
-              <label className="block mb-2">
-                Password <span className="text-red-500">*</span>
-              </label>
-              <Password
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                feedback={false}
-                toggleMask
-                className={`w-full ${errors.password ? "p-invalid" : ""}`}
-                inputClassName="w-full"
-                placeholder="Enter password (min 8 characters)"
-              />
-              {errors.password && (
-                <small className="p-error block mt-1">{errors.password}</small>
-              )}
-            </div>
-            <div className="field mb-3">
-              <label className="block mb-2">
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
-              <Password
-                name="confirmPassword"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                feedback={false}
-                toggleMask
-                className={`w-full ${
-                  errors.confirmPassword ? "p-invalid" : ""
-                }`}
-                inputClassName="w-full"
-                placeholder="Confirm password"
-              />
-              {errors.confirmPassword && (
-                <small className="p-error block mt-1">
-                  {errors.confirmPassword}
-                </small>
-              )}
-            </div>
+            <h1 className="login-title">Create Account</h1>
+            <p className="login-subtitle">Business Owner Registration</p>
+          </div>
 
-            <div className="flex flex-col sm:flex-row align-items-center gap-3 mt-2">
-              <Button
-                type="submit"
-                label={loading ? "Registering..." : "Register Owner"}
-                className="w-full"
-                loading={loading}
-              />
-              <Button
-                type="button"
-                label="Back to Login"
-                className="w-full p-button-secondary"
-                onClick={() => navigate("/login")}
-              />
-            </div>
-          </form>
-        </Card>
+          {/* Form Content */}
+          <div className="login-content">
+            <form onSubmit={handleSubmit}>
+              {/* Username Field */}
+              <div className="form-group">
+                <label htmlFor="name">
+                  <i
+                    className="pi pi-user"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
+                  Username
+                </label>
+                <InputText
+                  id="name"
+                  name="name"
+                  placeholder="Enter username"
+                  className={`login-input ${errors.name ? "p-invalid" : ""}`}
+                  value={form.name}
+                  onChange={handleChange}
+                />
+                {errors.name && (
+                  <small className="p-error block mt-1">{errors.name}</small>
+                )}
+              </div>
+
+              {/* Email Field */}
+              <div className="form-group">
+                <label htmlFor="email">
+                  <i
+                    className="pi pi-envelope"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
+                  Email
+                </label>
+                <InputText
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter email"
+                  className={`login-input ${errors.email ? "p-invalid" : ""}`}
+                  value={form.email}
+                  onChange={handleChange}
+                />
+                {errors.email && (
+                  <small className="p-error block mt-1">{errors.email}</small>
+                )}
+              </div>
+
+              {/* Phone Number Field */}
+              <div className="form-group">
+                <label htmlFor="phone_number">
+                  <i
+                    className="pi pi-phone"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
+                  Phone Number
+                </label>
+                <InputText
+                  id="phone_number"
+                  name="phone_number"
+                  placeholder="Enter phone number"
+                  className={`login-input ${
+                    errors.phone_number ? "p-invalid" : ""
+                  }`}
+                  value={form.phone_number}
+                  onChange={handleChange}
+                />
+                {errors.phone_number && (
+                  <small className="p-error block mt-1">
+                    {errors.phone_number}
+                  </small>
+                )}
+              </div>
+
+              {/* Business Name Field */}
+              <div className="form-group">
+                <label htmlFor="business_name">
+                  <i
+                    className="pi pi-building"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
+                  Business Name
+                </label>
+                <InputText
+                  id="business_name"
+                  name="business_name"
+                  placeholder="Enter business name"
+                  className={`login-input ${
+                    errors.business_name ? "p-invalid" : ""
+                  }`}
+                  value={form.business_name}
+                  onChange={handleChange}
+                />
+                {errors.business_name && (
+                  <small className="p-error block mt-1">
+                    {errors.business_name}
+                  </small>
+                )}
+              </div>
+
+              {/* Password Field */}
+              <div className="form-group">
+                <label htmlFor="password">
+                  <i
+                    className="pi pi-lock"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
+                  Password
+                </label>
+                <Password
+                  inputId="password"
+                  name="password"
+                  placeholder="Enter password (min 8 characters)"
+                  className={`login-input ${
+                    errors.password ? "p-invalid" : ""
+                  }`}
+                  value={form.password}
+                  onChange={handleChange}
+                  feedback={false}
+                  toggleMask={true}
+                />
+                {errors.password && (
+                  <small className="p-error block mt-1">{errors.password}</small>
+                )}
+              </div>
+
+              {/* Confirm Password Field */}
+              <div className="form-group">
+                <label htmlFor="confirmPassword">
+                  <i
+                    className="pi pi-lock"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
+                  Confirm Password
+                </label>
+                <Password
+                  inputId="confirmPassword"
+                  name="confirmPassword"
+                  placeholder="Confirm password"
+                  className={`login-input ${
+                    errors.confirmPassword ? "p-invalid" : ""
+                  }`}
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  feedback={false}
+                  toggleMask={true}
+                />
+                {errors.confirmPassword && (
+                  <small className="p-error block mt-1">
+                    {errors.confirmPassword}
+                  </small>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="button-group">
+                <Button
+                  type="submit"
+                  label={loading ? "Registering..." : "Register"}
+                  loading={loading}
+                  className="login-btn-primary"
+                  style={{ width: "100%", borderRadius: "8px" }}
+                />
+                <Button
+                  type="button"
+                  label="Back to Login"
+                  onClick={() => navigate("/login")}
+                  className="login-btn-secondary"
+                  style={{ width: "100%", borderRadius: "8px" }}
+                />
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </>
   );

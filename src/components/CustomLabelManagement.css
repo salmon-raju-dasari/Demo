@@ -2,7 +2,6 @@
 
 /* Main container responsive padding */
 .custom-label-main-container {
-    padding: 0.75rem;
     max-width: 100%;
     width: 100%;
     box-sizing: border-box;
@@ -60,7 +59,6 @@
     background: #ffffff;
     border: 1px solid #e5e7eb;
     border-top: none;
-    padding: 2rem;
 }
 
 .tab-panel {
@@ -87,22 +85,19 @@
         font-size: 0.875rem !important;
     }
 
-    .tab-panels {
-        padding: 1.25rem;
-    }
 }
 
 /* ===== END TAB STYLES ===== */
 
 @media (min-width: 640px) {
     .custom-label-main-container {
-        padding: 1rem;
+        /* padding: 1rem; */
     }
 }
 
 @media (min-width: 768px) {
     .custom-label-main-container {
-        padding: 1.5rem;
+        /* padding: 1.5rem; */
     }
 }
 
@@ -129,7 +124,7 @@
 
     .custom-label-main-container .p-card .p-card-body,
     .custom-label-main-container .p-card .p-card-content {
-        padding: 0.75rem;
+        /* padding: 0.75rem; */
     }
 }
 

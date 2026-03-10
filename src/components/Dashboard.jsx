@@ -1,8 +1,20 @@
 import { Card } from "primereact/card";
 import { Chart } from "primereact/chart";
-import { useState } from "react";
+import { Dropdown } from "primereact/dropdown";
+import { useState, useEffect } from "react";
+import api from "../services/api/axios";
+import "./Dashboard.css";
 
 export default function Dashboard() {
+  const [businessName, setBusinessName] = useState("Your Business");
+  const [stores, setStores] = useState([]);
+  const [selectedStore, setSelectedStore] = useState(null);
+  const [metrics, setMetrics] = useState({
+    totalSales: 0,
+    products: 0,
+    customers: 0,
+    revenue: "0.00",
+  });
   const [chartData] = useState({
     labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     datasets: [
@@ -46,9 +58,151 @@ export default function Dashboard() {
     },
   });
 
+  useEffect(() => {
+    const fetchBusinessDetails = async () => {
+      try {
+        const response = await api.get("/business");
+        console.log("Business details from /business endpoint:", response.data);
+
+        if (response.data?.business_name) {
+          console.log("Setting business name:", response.data.business_name);
+          setBusinessName(response.data.business_name);
+          localStorage.setItem("business_name", response.data.business_name);
+        } else {
+          console.log("No business_name found in response");
+          setBusinessName(
+            localStorage.getItem("business_name") || "Your Business",
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching business details:", error);
+        const storedName = localStorage.getItem("business_name");
+        console.log("Using stored business name:", storedName);
+        setBusinessName(storedName || "Your Business");
+      }
+    };
+    fetchBusinessDetails();
+  }, []);
+
+  // Fetch stores
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        const response = await api.get("/stores");
+        console.log("Stores response:", response.data);
+
+        const storesList = response.data?.items || [];
+
+        // Create dropdown options: all stores only (no Central Inventory)
+        const options = storesList.map((store) => ({
+          label: store.store_name,
+          value: store.id,
+        }));
+
+        setStores(options);
+
+        // Set default selected store to first store (if available)
+        setSelectedStore(options.length > 0 ? options[0].value : null);
+      } catch (error) {
+        console.error("Error fetching stores:", error);
+        // Default to empty if fetch fails
+        setStores([]);
+        setSelectedStore(null);
+      }
+    };
+
+    fetchStores();
+  }, []);
+
+  // Fetch and calculate metrics based on selected store
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const salesResponse = await api.get("/sales");
+        const sales = salesResponse.data || [];
+
+        // Filter sales by selected store
+        let filteredSales = sales;
+        if (selectedStore !== null) {
+          filteredSales = sales.filter(
+            (sale) => sale.store_id === selectedStore,
+          );
+        } else {
+          // No store selected - show no sales
+          filteredSales = [];
+        }
+
+        // Calculate metrics
+        const totalRevenue = filteredSales.reduce((sum, sale) => {
+          return sum + (parseFloat(sale.total_amount) || 0);
+        }, 0);
+
+        // Count unique customers
+        const uniqueCustomers = new Set(
+          filteredSales
+            .filter((sale) => sale.customer_id)
+            .map((sale) => sale.customer_id),
+        );
+
+        // Count unique products
+        const uniqueProducts = new Set();
+        filteredSales.forEach((sale) => {
+          if (sale.items && Array.isArray(sale.items)) {
+            sale.items.forEach((item) => {
+              if (item.product_id) {
+                uniqueProducts.add(item.product_id);
+              }
+            });
+          }
+        });
+
+        setMetrics({
+          totalSales: filteredSales.length,
+          products: uniqueProducts.size,
+          customers: uniqueCustomers.size,
+          revenue: totalRevenue.toFixed(2),
+        });
+
+        console.log("Calculated metrics:", {
+          totalSales: filteredSales.length,
+          products: uniqueProducts.size,
+          customers: uniqueCustomers.size,
+          revenue: totalRevenue.toFixed(2),
+        });
+      } catch (error) {
+        console.error("Error fetching metrics:", error);
+        setMetrics({
+          totalSales: 0,
+          products: 0,
+          customers: 0,
+          revenue: "0.00",
+        });
+      }
+    };
+
+    fetchMetrics();
+  }, [selectedStore]);
+
   return (
     <div className="dashboard-container">
-      <h1 className="mb-4">Welcome to POS Dashboard</h1>
+      <div className="dashboard-header">
+        <h1>
+          Welcome to{" "}
+          <span className="business-name-heading">{businessName}</span>
+        </h1>
+        <div className="store-selector">
+          <Dropdown
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.value)}
+            options={stores}
+            showClear={true}
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Choose a store..."
+            className="w-full"
+          />
+        </div>
+      </div>
 
       <div className="grid">
         <div className="col-12 md:col-6 lg:col-3">
@@ -70,7 +224,9 @@ export default function Dashboard() {
                 <span className="block text-500 font-medium mb-1">
                   Total Sales
                 </span>
-                <div className="text-900 font-bold text-xl">$12,345</div>
+                <div className="text-900 font-bold text-xl">
+                  {metrics.totalSales}
+                </div>
               </div>
             </div>
           </Card>
@@ -95,7 +251,9 @@ export default function Dashboard() {
                 <span className="block text-500 font-medium mb-1">
                   Products
                 </span>
-                <div className="text-900 font-bold text-xl">452</div>
+                <div className="text-900 font-bold text-xl">
+                  {metrics.products}
+                </div>
               </div>
             </div>
           </Card>
@@ -120,7 +278,9 @@ export default function Dashboard() {
                 <span className="block text-500 font-medium mb-1">
                   Customers
                 </span>
-                <div className="text-900 font-bold text-xl">1,234</div>
+                <div className="text-900 font-bold text-xl">
+                  {metrics.customers}
+                </div>
               </div>
             </div>
           </Card>
@@ -143,7 +303,9 @@ export default function Dashboard() {
               </div>
               <div className="ml-3">
                 <span className="block text-500 font-medium mb-1">Revenue</span>
-                <div className="text-900 font-bold text-xl">$45,678</div>
+                <div className="text-900 font-bold text-xl">
+                  ${metrics.revenue}
+                </div>
               </div>
             </div>
           </Card>

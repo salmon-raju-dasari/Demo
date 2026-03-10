@@ -267,7 +267,7 @@ export const ProfilePage = () => {
               <div className="avatar-info">
                 <h2>{employee.name}</h2>
                 <p className="employee-email">{employee.email}</p>
-                <Chip label={employee.role} className="role-badge" />
+                <Chip label={employee.role_name} className="role-badge" />
               </div>
             )}
             {selectedFile && (

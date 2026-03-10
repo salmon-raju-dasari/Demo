@@ -1,5 +1,4 @@
 .all-products-container {
-    padding: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
     overflow-x: hidden;
@@ -448,9 +447,6 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .all-products-container {
-        padding: 0.75rem;
-    }
 
     .page-title {
         font-size: 1.5rem;

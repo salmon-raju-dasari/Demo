@@ -1,0 +1,369 @@
+/* ═══════════════════════════════════════════════════════
+   PermissionManagement  –  Clean, Simple, Enterprise
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Layout ─────────────────────────────────────────── */
+.pm-container {
+  display: flex;
+  flex-direction: column;
+  background: #f4f6f9;
+  height: 100%;
+}
+
+.pm-header {
+  padding: 0.3rem;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+.pm-header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.pm-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Card ───────────────────────────────────────────── */
+.pm-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.pm-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem;
+  border-bottom: 1px solid #edf2f7;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pm-card-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2d3748;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+/* ── Card Search ────────────────────────────────────── */
+.pm-card-search {
+  padding: 12px 20px;
+  border-bottom: 1px solid #edf2f7;
+  width: 100%;
+}
+
+/* ── Search ─────────────────────────────────────────── */
+.pm-search-wrap {
+  position: relative;
+  width: 100%;
+  display: block;
+}
+
+.pm-search-wrap i {
+  position: absolute;
+  left: 10px;
+  top: 70%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+  font-size: 13px;
+  z-index: 1;
+}
+
+.pm-search {
+  padding: 7px 10px 7px 30px !important;
+  font-size: 13px !important;
+  border: 1px solid #cbd5e0 !important;
+  border-radius: 6px !important;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.pm-search:focus {
+  border-color: #4299e1 !important;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.15) !important;
+}
+
+/* ── Table ──────────────────────────────────────────── */
+.pm-table-wrap {
+  overflow: auto;
+  max-height: 340px;
+}
+
+.pm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.pm-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.pm-table th {
+  background: #f8f9fb;
+  color: #4a5568;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.pm-table td {
+  padding: 10px 16px;
+  color: #2d3748;
+  border-bottom: 1px solid #edf2f7;
+  vertical-align: middle;
+}
+
+.pm-table tbody tr {
+  transition: background 0.15s;
+}
+
+.pm-table tbody tr:hover {
+  background: #f7fafc;
+}
+
+.pm-table tbody tr.pm-selected {
+  background: #ebf8ff;
+}
+
+.pm-capitalize {
+  text-transform: capitalize;
+}
+
+.pm-muted {
+  color: #a0aec0;
+}
+
+.pm-center {
+  text-align: center;
+}
+
+/* ── Details Section ────────────────────────────────── */
+.pm-details {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pm-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #a0aec0;
+  text-align: center;
+  min-height: 300px;
+}
+
+.pm-permissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.pm-permission-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pm-permission-item:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.pm-permission-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pm-permission-item label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.pm-perm-name {
+  font-weight: 500;
+  color: #2d3748;
+  text-transform: capitalize;
+  font-size: 13px;
+}
+
+.pm-perm-desc {
+  font-size: 12px;
+  color: #718096;
+}
+
+.pm-details-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* ── Modal ──────────────────────────────────────────── */
+.pm-modal {
+  min-width: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-modal .p-dialog {
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-modal .p-dialog-header {
+  flex-shrink: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.pm-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.pm-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid #edf2f7;
+  flex-shrink: 0;
+}
+
+.pm-checkbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pm-checkbox-item:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.pm-checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pm-checkbox-item label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  flex: 1;
+}
+
+/* ── Scrollbar ──────────────────────────────────────── */
+.pm-table-wrap::-webkit-scrollbar,
+.pm-content::-webkit-scrollbar,
+.pm-permissions-list::-webkit-scrollbar,
+.pm-modal-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.pm-table-wrap::-webkit-scrollbar-track,
+.pm-content::-webkit-scrollbar-track,
+.pm-permissions-list::-webkit-scrollbar-track,
+.pm-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pm-table-wrap::-webkit-scrollbar-thumb,
+.pm-content::-webkit-scrollbar-thumb,
+.pm-permissions-list::-webkit-scrollbar-thumb,
+.pm-modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .pm-header {
+    padding: 0.3rem;
+  }
+
+  .pm-header h1 {
+    font-size: 17px;
+  }
+
+  .pm-card-head {
+    padding: 0.3rem;
+  }
+
+  .pm-card-search {
+    padding: 0.3rem;
+  }
+
+  .pm-table th,
+  .pm-table td {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .pm-modal {
+    min-width: auto;
+    width: 95%;
+  }
+
+  .pm-modal .p-dialog-header {
+    font-size: 14px;
+  }
+}

@@ -1,18 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../services/api/auth.service";
-import { Card } from "primereact/card";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
 import { Dialog } from "primereact/dialog";
 import { api } from "../services/api/axios";
+import "../Login/Auth.css";
 
 export default function ForgotPassword() {
   const [userId, setUserId] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingOTP, setLoadingOTP] = useState(false);
+  const [loadingVerify, setLoadingVerify] = useState(false);
+  const [loadingResend, setLoadingResend] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const navigate = useNavigate();
@@ -59,7 +61,7 @@ export default function ForgotPassword() {
     }
 
     try {
-      setLoading(true);
+      setLoadingOTP(true);
       await api.post("/employees/forgot-password-otp", {
         user_id: userId.toUpperCase(),
         email: email,
@@ -82,7 +84,7 @@ export default function ForgotPassword() {
         life: 3000,
       });
     } finally {
-      setLoading(false);
+      setLoadingOTP(false);
     }
   };
 
@@ -108,7 +110,7 @@ export default function ForgotPassword() {
     }
 
     try {
-      setLoading(true);
+      setLoadingVerify(true);
       await api.post("/employees/verify-otp-password", {
         email: email,
         otp: otp,
@@ -125,7 +127,7 @@ export default function ForgotPassword() {
         life: 3000,
       });
     } finally {
-      setLoading(false);
+      setLoadingVerify(false);
     }
   };
 
@@ -143,127 +145,168 @@ export default function ForgotPassword() {
   return (
     <>
       <Toast ref={toast} />
-      <div>
-        <Card
-          title="Forgot Password"
-          subTitle="Enter your User ID and email to receive a verification code"
-          className="sm:max-w-100 w-[90%] m-auto mt-6 p-2 border-round-lg shadow-2"
-        >
-          <div className="flex flex-column gap-3">
-            <div className="p-field">
-              <label htmlFor="userId" className="block mb-2 font-medium">
-                User ID <span className="text-red-500">*</span>
-              </label>
-              <InputText
-                id="userId"
-                type="text"
-                placeholder="Enter your User ID (e.g., USR1000)"
-                className="w-full"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value.toUpperCase())}
-                onKeyPress={handleKeyPress}
-                disabled={otpSent}
-              />
-              <small className="block mt-1 text-600">
-                If you don't know your User ID, use "Forgot Username" below.
-              </small>
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-header">
+            <div className="auth-icon">
+              <i className="pi pi-lock"></i>
             </div>
-
-            <div className="p-field">
-              <label htmlFor="email" className="block mb-2 font-medium">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <InputText
-                id="email"
-                type="email"
-                placeholder="Enter your registered email"
-                className="w-full"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={otpSent}
-              />
-            </div>
-
-            {!otpSent && (
-              <Button
-                label="Send OTP"
-                icon="pi pi-send"
-                className="w-full"
-                loading={loading}
-                onClick={handleSendOTP}
-              />
-            )}
-
-            {otpSent && (
-              <>
-                <div className="p-field">
-                  <label htmlFor="otp" className="block mb-2 font-medium">
-                    Enter OTP <span className="text-red-500">*</span>
-                  </label>
-                  <InputText
-                    id="otp"
-                    placeholder="Enter 6-digit OTP"
-                    className="w-full"
-                    value={otp}
-                    onChange={(e) =>
-                      setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
-                    onKeyPress={handleKeyPress}
-                    maxLength={6}
-                  />
-                  <small className="block mt-2 text-600">
-                    OTP valid for 10 minutes. Check your email inbox and spam
-                    folder.
-                  </small>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    label="Verify OTP"
-                    icon="pi pi-check"
-                    className="flex-1"
-                    loading={loading}
-                    onClick={handleVerifyOTP}
-                  />
-                  <Button
-                    label="Resend OTP"
-                    icon="pi pi-refresh"
-                    className="flex-1 p-button-secondary"
-                    loading={loading}
-                    onClick={() => {
-                      setOtp("");
-                      setOtpSent(false);
-                    }}
-                  />
-                </div>
-              </>
-            )}
-
-            <div className="flex flex-column gap-2 mt-3">
-              <Button
-                label="Back to Login"
-                icon="pi pi-arrow-left"
-                className="p-button-text"
-                onClick={() =>
-                  navigate("/login", { state: { fromForgotFlow: true } })
-                }
-              />
-              <Button
-                label="Forgot Username?"
-                icon="pi pi-user"
-                className="p-button-link"
-                onClick={() => navigate("/forgot-username")}
-              />
-            </div>
+            <h1 className="auth-title">Reset Your Password</h1>
+            <p className="auth-subtitle">
+              Enter your User ID and email to receive a verification code
+            </p>
           </div>
-        </Card>
+
+          <div className="auth-content">
+            <form>
+              {!otpSent && (
+                <>
+                  <div className="auth-form-group">
+                    <label htmlFor="userId">
+                      User ID <span className="auth-required">*</span>
+                    </label>
+                    <InputText
+                      id="userId"
+                      type="text"
+                      placeholder="Enter your User ID (e.g., USR1000)"
+                      className="auth-input"
+                      value={userId}
+                      onChange={(e) => setUserId(e.target.value.toUpperCase())}
+                      onKeyPress={handleKeyPress}
+                      disabled={otpSent}
+                    />
+                    <small className="auth-helper-text">
+                      If you don't know your User ID, use "Forgot Username"
+                      below.
+                    </small>
+                  </div>
+
+                  <div className="auth-form-group">
+                    <label htmlFor="email">
+                      Email Address <span className="auth-required">*</span>
+                    </label>
+                    <InputText
+                      id="email"
+                      type="email"
+                      placeholder="Enter your registered email"
+                      className="auth-input"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      disabled={otpSent}
+                    />
+                  </div>
+
+                  <div className="auth-button-group">
+                    <Button
+                      label="Send OTP"
+                      icon="pi pi-send"
+                      className="auth-btn-primary"
+                      loading={loadingOTP}
+                      onClick={handleSendOTP}
+                    />
+                  </div>
+                </>
+              )}
+
+              {otpSent && (
+                <>
+                  <div className="auth-form-group">
+                    <label htmlFor="otp">
+                      Enter OTP <span className="auth-required">*</span>
+                    </label>
+                    <InputText
+                      id="otp"
+                      placeholder="Enter 6-digit OTP"
+                      className="auth-input"
+                      value={otp}
+                      onChange={(e) =>
+                        setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                      }
+                      onKeyPress={handleKeyPress}
+                      maxLength={6}
+                    />
+                    <small className="auth-helper-text">
+                      OTP valid for 10 minutes. Check your email inbox and spam
+                      folder.
+                    </small>
+                  </div>
+
+                  <div className="auth-button-group auth-button-group-flex">
+                    <Button
+                      label="Verify OTP"
+                      icon="pi pi-check"
+                      className="auth-btn-primary"
+                      loading={loadingVerify}
+                      onClick={handleVerifyOTP}
+                    />
+                    <Button
+                      label="Resend OTP"
+                      icon="pi pi-refresh"
+                      className="auth-btn-secondary"
+                      loading={loadingResend}
+                      onClick={async () => {
+                        try {
+                          setLoadingResend(true);
+                          await api.post("/employees/forgot-password-otp", {
+                            user_id: userId.toUpperCase(),
+                            email: email,
+                          });
+                          toast.current.show({
+                            severity: "success",
+                            summary: "Success",
+                            detail: "OTP has been resent to your email.",
+                            life: 5000,
+                          });
+                          setOtp("");
+                        } catch (error) {
+                          toast.current.show({
+                            severity: "error",
+                            summary: "Error",
+                            detail:
+                              error.response?.data?.detail ||
+                              "Failed to resend OTP. Please try again.",
+                            life: 3000,
+                          });
+                        } finally {
+                          setLoadingResend(false);
+                        }
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="auth-link-group">
+                <button
+                  type="button"
+                  className="auth-link-button"
+                  onClick={() =>
+                    navigate("/login", { state: { fromForgotFlow: true } })
+                  }
+                >
+                  <i className="pi pi-arrow-left"></i>
+                  Back to Login
+                </button>
+                <button
+                  type="button"
+                  className="auth-link-button"
+                  onClick={() => navigate("/forgot-username")}
+                >
+                  <i className="pi pi-user"></i>
+                  Forgot Username?
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
 
       <Dialog
         header="Password Reset Successfully"
         visible={showSuccessDialog}
         style={{ width: "90vw", maxWidth: "500px" }}
+        headerClassName="auth-dialog-header"
         onHide={() => {
           setShowSuccessDialog(false);
           navigate("/login", { state: { fromForgotFlow: true } });
@@ -280,22 +323,17 @@ export default function ForgotPassword() {
           />
         }
       >
-        <div className="flex align-items-center gap-3">
-          <i
-            className="pi pi-check-circle text-green-500"
-            style={{ fontSize: "3rem" }}
-          ></i>
-          <div>
-            <p className="m-0 font-medium">
-              Your temporary password has been sent to your email address.
-            </p>
-            <p className="mt-2 text-600">
-              Please check your inbox and use the temporary password to login.
-            </p>
-            <p className="mt-2 text-orange-600 font-medium">
-              ⚠️ Remember to change your password after logging in for security.
-            </p>
-          </div>
+        <div className="auth-success-content">
+          <i className="pi pi-check-circle"></i>
+          <p className="auth-success-title">
+            Your temporary password has been sent to your email address.
+          </p>
+          <p className="auth-success-message">
+            Please check your inbox and use the temporary password to login.
+          </p>
+          <p className="auth-success-warning">
+            ⚠️ Remember to change your password after logging in for security.
+          </p>
         </div>
       </Dialog>
     </>

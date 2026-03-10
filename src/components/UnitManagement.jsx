@@ -653,16 +653,6 @@ const UnitManagement = () => {
       <Toast ref={toast} />
       <ConfirmDialog />
 
-      {/* Header */}
-      <div className="unit-header">
-        <div>
-          <h1>Unit Management</h1>
-          <p className="header-subtitle">
-            Create and manage custom units for your products
-          </p>
-        </div>
-      </div>
-
       <div className="unit-content">
         {/* Form Section */}
         <div className="unit-form-section">

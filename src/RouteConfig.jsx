@@ -19,6 +19,8 @@ import CategoryManagement from "./components/CategoryManagement";
 import SalesScreen from "./components/SalesScreen";
 import SalesHistory from "./components/SalesHistory";
 import UnitManagement from "./components/UnitManagement";
+import InventoryManagement from "./components/InventoryManagement";
+import RoleManagement from "./components/RoleManagement";
 // Import your other components
 
 const RouteConfig = () => {
@@ -144,24 +146,18 @@ const RouteConfig = () => {
             requiredRoles={["admin", "owner", "manager", "stock_keeper"]}
           >
             <MainLayout>
-              <div className="dashboard-card">
-                <h3>Inventory</h3>
-                <p>Inventory management will appear here</p>
-              </div>
+              <InventoryManagement />
             </MainLayout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/settings"
+        path="/roles"
         element={
           <ProtectedRoute requiredRoles={["admin", "owner"]}>
             <MainLayout>
-              <div className="dashboard-card">
-                <h3>Settings</h3>
-                <p>Settings panel will appear here</p>
-              </div>
+              <RoleManagement />
             </MainLayout>
           </ProtectedRoute>
         }

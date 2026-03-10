@@ -13,6 +13,17 @@ import api from "./axios";
 export const addProducts = async (products) => {
   try {
     const response = await api.post("/products/addProducts", products);
+
+    // Check for error status codes (422, etc.) even if axios doesn't throw
+    if (response.status === 422 || response.status >= 400) {
+      return {
+        success: false,
+        error: response.data || {
+          message: "Validation error occurred",
+        },
+      };
+    }
+
     return {
       success: true,
       data: response.data,
@@ -97,6 +108,17 @@ export const updateProduct = async (productId, productData) => {
       `/products/updateProduct/${productId}`,
       productData,
     );
+
+    // Check for error status codes (422, etc.) even if axios doesn't throw
+    if (response.status === 422 || response.status >= 400) {
+      return {
+        success: false,
+        error: response.data || {
+          message: "Validation error occurred",
+        },
+      };
+    }
+
     return {
       success: true,
       data: response.data,

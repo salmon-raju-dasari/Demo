@@ -114,7 +114,7 @@ export default function CustomLabelManagement() {
 
   const handleProductValueChange = (index, value) => {
     setProductLabelValues((prev) =>
-      prev.map((v, i) => (i === index ? value : v))
+      prev.map((v, i) => (i === index ? value : v)),
     );
   };
 
@@ -157,7 +157,7 @@ export default function CustomLabelManagement() {
 
   const handleEmployeeValueChange = (index, value) => {
     setEmployeeLabelValues((prev) =>
-      prev.map((v, i) => (i === index ? value : v))
+      prev.map((v, i) => (i === index ? value : v)),
     );
   };
 
@@ -192,8 +192,8 @@ export default function CustomLabelManagement() {
     const labelNameToSave = isCreatingNewProductLabel
       ? newProductLabelName.trim()
       : isEditingProductName
-      ? editedProductLabelName.trim()
-      : selectedProductLabelData?.label_name;
+        ? editedProductLabelName.trim()
+        : selectedProductLabelData?.label_name;
     const validValues = productLabelValues
       .filter((v) => v.trim())
       .map((v) => v.trim());
@@ -238,7 +238,7 @@ export default function CustomLabelManagement() {
       } else {
         await api.put(
           `/custom-labels/${selectedProductLabelData.id}`,
-          labelData
+          labelData,
         );
         toast.current?.show({
           severity: "success",
@@ -254,7 +254,7 @@ export default function CustomLabelManagement() {
         setTimeout(async () => {
           const response = await api.get("/custom-labels");
           const updatedLabel = response.data.find(
-            (l) => l.id === selectedProductLabelData.id
+            (l) => l.id === selectedProductLabelData.id,
           );
           if (updatedLabel) {
             setSelectedProductLabelName(updatedLabel.label_name);
@@ -289,8 +289,8 @@ export default function CustomLabelManagement() {
     const labelNameToSave = isCreatingNewEmployeeLabel
       ? newEmployeeLabelName.trim()
       : isEditingEmployeeName
-      ? editedEmployeeLabelName.trim()
-      : selectedEmployeeLabelData?.label_name;
+        ? editedEmployeeLabelName.trim()
+        : selectedEmployeeLabelData?.label_name;
     const validValues = employeeLabelValues
       .filter((v) => v.trim())
       .map((v) => v.trim());
@@ -335,7 +335,7 @@ export default function CustomLabelManagement() {
       } else {
         await api.put(
           `/custom-labels/${selectedEmployeeLabelData.id}`,
-          labelData
+          labelData,
         );
         toast.current?.show({
           severity: "success",
@@ -351,7 +351,7 @@ export default function CustomLabelManagement() {
         setTimeout(async () => {
           const response = await api.get("/custom-labels");
           const updatedLabel = response.data.find(
-            (l) => l.id === selectedEmployeeLabelData.id
+            (l) => l.id === selectedEmployeeLabelData.id,
           );
           if (updatedLabel) {
             setSelectedEmployeeLabelName(updatedLabel.label_name);
@@ -510,7 +510,7 @@ export default function CustomLabelManagement() {
     setIsEditingName,
     handleValueChange,
     handleRemoveValue,
-    handleAddValue
+    handleAddValue,
   ) => {
     const isProduct = labelType === "product";
     const typeLabel = isProduct ? "Product" : "Employee";
@@ -518,208 +518,200 @@ export default function CustomLabelManagement() {
     return (
       <>
         {/* Label Selector Section */}
-        <Card className="mb-4">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-              <div className="flex-1">
-                <label className="block text-sm font-semibold mb-2">
-                  Select {typeLabel} Label to Manage
-                </label>
-                <Dropdown
-                  value={selectedLabelName}
-                  options={labelOptions}
-                  onChange={(e) => handleLabelSelect(e.value)}
-                  placeholder={`Choose a ${labelType} label`}
-                  filter
-                  showClear
-                  className="w-full"
-                  disabled={isCreatingNewLabel}
-                />
-              </div>
-              <Button
-                label="Create New Label"
-                icon="pi pi-plus"
-                severity="success"
-                onClick={handleCreateNewLabel}
-                className="w-full sm:w-auto"
+        <div className="flex flex-col gap-4 p-3">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-semibold mb-2">
+                Select {typeLabel} Label to Manage
+              </label>
+              <Dropdown
+                value={selectedLabelName}
+                options={labelOptions}
+                onChange={(e) => handleLabelSelect(e.value)}
+                placeholder={`Choose a ${labelType} label`}
+                filter
+                showClear
+                className="w-full"
+                disabled={isCreatingNewLabel}
               />
             </div>
+            <Button
+              label="Create New Label"
+              icon="pi pi-plus"
+              severity="success"
+              onClick={handleCreateNewLabel}
+              className="w-full sm:w-auto"
+            />
           </div>
-        </Card>
+        </div>
 
         {/* New Label Creation Section */}
         {isCreatingNewLabel && (
-          <Card className="mb-4 bg-blue-50">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-800">
-                  Create New {typeLabel} Label
-                </h3>
-                <Button
-                  icon="pi pi-times"
-                  rounded
-                  text
-                  severity="secondary"
-                  onClick={handleCancelNewLabel}
-                  tooltip="Cancel"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold">
-                  Label Name <span className="text-red-500">*</span>
-                </label>
-                <InputText
-                  value={newLabelName}
-                  onChange={(e) => setNewLabelName(e.target.value)}
-                  placeholder={
-                    isProduct
-                      ? "e.g., Size, Color, Material"
-                      : "e.g., Blood Group, Department"
-                  }
-                  className="w-full"
-                />
-                <small className="text-gray-600">
-                  This will appear as an option when managing {labelType}s
-                </small>
-              </div>
+          <div className="flex flex-col gap-4 p-2 bg-blue-50 border border-blue-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-800">
+                Create New {typeLabel} Label
+              </h3>
+              <Button
+                icon="pi pi-times"
+                rounded
+                text
+                severity="secondary"
+                onClick={handleCancelNewLabel}
+                tooltip="Cancel"
+              />
             </div>
-          </Card>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold">
+                Label Name <span className="text-red-500">*</span>
+              </label>
+              <InputText
+                value={newLabelName}
+                onChange={(e) => setNewLabelName(e.target.value)}
+                placeholder={
+                  isProduct
+                    ? "e.g., Size, Color, Material"
+                    : "e.g., Blood Group, Department"
+                }
+                className="w-full"
+              />
+              <small className="text-gray-600">
+                This will appear as an option when managing {labelType}s
+              </small>
+            </div>
+          </div>
         )}
 
         {/* Label Values Management Section */}
         {(selectedLabelData || isCreatingNewLabel) && (
-          <Card>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex-1">
-                  {isCreatingNewLabel ? (
-                    <h3 className="text-lg font-bold text-gray-800">
-                      Create New {typeLabel} Label
-                    </h3>
-                  ) : isEditingName ? (
-                    <div className="custom-label-edit-name flex gap-2 items-center flex-wrap">
-                      <InputText
-                        value={editedLabelName}
-                        onChange={(e) => setEditedLabelName(e.target.value)}
-                        className="flex-1 min-w-[150px]"
-                        placeholder="Label Name"
-                      />
-                      <div className="custom-label-button-group flex gap-2">
-                        <Button
-                          icon="pi pi-check"
-                          rounded
-                          severity="success"
-                          size="small"
-                          tooltip="Save Name"
-                          tooltipOptions={{ position: "top" }}
-                          onClick={handleSaveLabel}
-                          loading={saveLoading}
-                          disabled={saveLoading}
-                        />
-                        <Button
-                          icon="pi pi-times"
-                          rounded
-                          severity="secondary"
-                          size="small"
-                          tooltip="Cancel"
-                          tooltipOptions={{ position: "top" }}
-                          onClick={() => {
-                            setEditedLabelName(selectedLabelData?.label_name);
-                            setIsEditingName(false);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-bold text-gray-800">
-                        Manage \"{selectedLabelData?.label_name}\" Values
-                      </h3>
-                      <Button
-                        icon="pi pi-pencil"
-                        rounded
-                        text
-                        size="small"
-                        severity="info"
-                        tooltip="Edit Label Name"
-                        onClick={() => setIsEditingName(true)}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="custom-label-actions flex gap-2 flex-wrap">
-                  {!isCreatingNewLabel && (
-                    <Button
-                      label="Delete"
-                      icon="pi pi-trash"
-                      severity="danger"
-                      outlined
-                      onClick={handleDeleteLabel}
-                      size="small"
-                      className="flex-1 sm:flex-initial"
+          <div className="flex flex-col gap-4 p-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex-1">
+                {isCreatingNewLabel ? (
+                  <h3 className="text-lg font-bold text-gray-800">
+                    Create New {typeLabel} Label
+                  </h3>
+                ) : isEditingName ? (
+                  <div className="custom-label-edit-name flex gap-2 items-center flex-wrap">
+                    <InputText
+                      value={editedLabelName}
+                      onChange={(e) => setEditedLabelName(e.target.value)}
+                      className="flex-1 min-w-[150px]"
+                      placeholder="Label Name"
                     />
-                  )}
+                    <div className="custom-label-button-group flex gap-2">
+                      <Button
+                        icon="pi pi-check"
+                        rounded
+                        severity="success"
+                        size="small"
+                        tooltip="Save Name"
+                        tooltipOptions={{ position: "top" }}
+                        onClick={handleSaveLabel}
+                        loading={saveLoading}
+                        disabled={saveLoading}
+                      />
+                      <Button
+                        icon="pi pi-times"
+                        rounded
+                        severity="secondary"
+                        size="small"
+                        tooltip="Cancel"
+                        tooltipOptions={{ position: "top" }}
+                        onClick={() => {
+                          setEditedLabelName(selectedLabelData?.label_name);
+                          setIsEditingName(false);
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-gray-800">
+                      Manage \"{selectedLabelData?.label_name}\" Values
+                    </h3>
+                    <Button
+                      icon="pi pi-pencil"
+                      rounded
+                      text
+                      size="small"
+                      severity="info"
+                      tooltip="Edit Label Name"
+                      onClick={() => setIsEditingName(true)}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="custom-label-actions flex gap-2 flex-wrap">
+                {!isCreatingNewLabel && (
                   <Button
-                    label={isCreatingNewLabel ? "Create" : "Save"}
-                    icon="pi pi-save"
-                    severity="success"
-                    onClick={handleSaveLabel}
-                    loading={saveLoading}
-                    disabled={saveLoading}
+                    label="Delete"
+                    icon="pi pi-trash"
+                    severity="danger"
+                    outlined
+                    onClick={handleDeleteLabel}
                     size="small"
                     className="flex-1 sm:flex-initial"
                   />
-                </div>
-              </div>
-              <div className="custom-label-values flex flex-col gap-3">
-                <label className="text-sm font-semibold">
-                  Predefined Values <span className="text-red-500">*</span>
-                </label>
-
-                {labelValues.map((value, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <div className="flex-1">
-                      <InputText
-                        value={value}
-                        onChange={(e) =>
-                          handleValueChange(index, e.target.value)
-                        }
-                        placeholder={`Value ${index + 1}`}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="custom-label-button-group flex gap-1">
-                      <Button
-                        icon="pi pi-trash"
-                        rounded
-                        severity="danger"
-                        outlined
-                        onClick={() => handleRemoveValue(index)}
-                        tooltip="Remove"
-                        tooltipOptions={{ position: "top" }}
-                        disabled={labelValues.length === 1}
-                      />
-                      {index === labelValues.length - 1 && (
-                        <Button
-                          icon="pi pi-plus"
-                          rounded
-                          severity="success"
-                          onClick={handleAddValue}
-                          tooltip="Add Value"
-                          tooltipOptions={{ position: "top" }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                <small className="text-gray-600">
-                  These values will be available in dropdowns
-                </small>
+                )}
+                <Button
+                  label={isCreatingNewLabel ? "Create" : "Save"}
+                  icon="pi pi-save"
+                  severity="success"
+                  onClick={handleSaveLabel}
+                  loading={saveLoading}
+                  disabled={saveLoading}
+                  size="small"
+                  className="flex-1 sm:flex-initial"
+                />
               </div>
             </div>
-          </Card>
+            <div className="custom-label-values flex flex-col gap-3">
+              <label className="text-sm font-semibold">
+                Predefined Values <span className="text-red-500">*</span>
+              </label>
+
+              {labelValues.map((value, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <div className="flex-1">
+                    <InputText
+                      value={value}
+                      onChange={(e) => handleValueChange(index, e.target.value)}
+                      placeholder={`Value ${index + 1}`}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="custom-label-button-group flex gap-1">
+                    <Button
+                      icon="pi pi-trash"
+                      rounded
+                      severity="danger"
+                      outlined
+                      onClick={() => handleRemoveValue(index)}
+                      tooltip="Remove"
+                      tooltipOptions={{ position: "top" }}
+                      disabled={labelValues.length === 1}
+                    />
+                    {index === labelValues.length - 1 && (
+                      <Button
+                        icon="pi pi-plus"
+                        rounded
+                        severity="success"
+                        onClick={handleAddValue}
+                        tooltip="Add Value"
+                        tooltipOptions={{ position: "top" }}
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              <small className="text-gray-600">
+                These values will be available in dropdowns
+              </small>
+            </div>
+          </div>
         )}
 
         {/* Empty State */}
@@ -769,7 +761,7 @@ export default function CustomLabelManagement() {
 
       {/* Main Screen */}
       <div className="custom-label-main-container">
-        <div className="mb-4 sm:mb-6">
+        <div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             Custom Label Management
           </h2>
@@ -811,7 +803,7 @@ export default function CustomLabelManagement() {
                 setIsEditingProductName,
                 handleProductValueChange,
                 handleRemoveProductValue,
-                handleAddProductValue
+                handleAddProductValue,
               )}
             </div>
           )}
@@ -839,7 +831,7 @@ export default function CustomLabelManagement() {
                 setIsEditingEmployeeName,
                 handleEmployeeValueChange,
                 handleRemoveEmployeeValue,
-                handleAddEmployeeValue
+                handleAddEmployeeValue,
               )}
             </div>
           )}

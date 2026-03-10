@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Card } from "primereact/card";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
-import { authService } from "../services/api/auth.service";
 import { Password } from "primereact/password";
+import { authService } from "../services/api/auth.service";
+import api from "../services/api/axios";
+import "./Login.css";
 
 export default function Login() {
   const [userId, setUserId] = useState("");
@@ -52,12 +53,31 @@ export default function Login() {
       // Store user_id in localStorage for payment tracking
       localStorage.setItem("user_id", userId);
 
+      // Fetch current user details to get business name
+      try {
+        const businessResponse = await api.get("/business");
+        console.log("Business response from login:", businessResponse.data);
+
+        if (businessResponse.data?.business_name) {
+          console.log(
+            "Storing business name:",
+            businessResponse.data.business_name,
+          );
+          localStorage.setItem(
+            "business_name",
+            businessResponse.data.business_name,
+          );
+        }
+      } catch (userError) {
+        console.error("Error fetching business details:", userError);
+      }
+
       // Fetch payment status to get expiry time
       try {
         const API_BASE_URL =
           import.meta.env.VITE_API_BASE_URL || "http://136.114.116.97:8000/api";
         const paymentResponse = await fetch(
-          `${API_BASE_URL}/payment/status/${userId}`
+          `${API_BASE_URL}/payment/status/${userId}`,
         );
         const paymentData = await paymentResponse.json();
 
@@ -65,7 +85,7 @@ export default function Login() {
           // Store expiry time for next status check
           localStorage.setItem(
             `payment_expires_at_${userId}`,
-            paymentData.expires_at
+            paymentData.expires_at,
           );
           console.log("Payment expiry stored:", paymentData.expires_at);
         } else {
@@ -113,58 +133,113 @@ export default function Login() {
   return (
     <>
       <Toast ref={toast} />
-      <div>
-        <Card
-          title="Login"
-          className="sm:max-w-100 w-[90%] m-auto mt-6 p-2 border-round-lg shadow-2"
-        >
-          <InputText
-            placeholder="User ID (e.g., USR1000)"
-            className="w-full mb-3"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
-          <Password
-            placeholder="Password"
-            value={password}
-            className="w-full mb-3"
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyPress={handleKeyPress}
-            feedback={false}
-            toggleMask={true}
-          />
-
-          <div className="flex flex-col sm:flex-row align-items-center gap-3">
-            <Button
-              label="Login"
-              className="w-full"
-              loading={loading}
-              onClick={() => handleLogin()}
-            />
-            <Button
-              label="Owner Registration"
-              className="w-full p-button-secondary"
-              onClick={() => navigate("/register/owner")}
-            />
+      <div className="login-container">
+        <div className="login-card">
+          {/* Header */}
+          <div className="login-header">
+            <div className="login-icon">
+              <i className="pi pi-building"></i>
+            </div>
+            <h1 className="login-title">Welcome Back</h1>
+            <p className="login-subtitle">Enterprise Inventory Management</p>
           </div>
 
-          <div className="flex flex-column sm:flex-row gap-2 mt-4 justify-content-center">
-            <Button
-              label="Forgot Username?"
-              icon="pi pi-user"
-              className="p-button-link p-button-sm"
-              onClick={() => navigate("/forgot-username")}
-            />
-            <span className="hidden sm:inline text-400">|</span>
-            <Button
-              label="Forgot Password?"
-              icon="pi pi-key"
-              className="p-button-link p-button-sm"
-              onClick={() => navigate("/forgot-password")}
-            />
+          {/* Form Content */}
+          <div className="login-content">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLogin();
+              }}
+            >
+              {/* User ID Field */}
+              <div className="form-group">
+                <label htmlFor="userId">
+                  <i
+                    className="pi pi-user"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
+                  User ID
+                </label>
+                <InputText
+                  id="userId"
+                  placeholder="Enter your User ID"
+                  className="login-input"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value.toUpperCase())}
+                  onKeyPress={handleKeyPress}
+                  autoFocus
+                />
+              </div>
+
+              {/* Password Field */}
+              <div className="form-group">
+                <label htmlFor="password">
+                  <i
+                    className="pi pi-lock"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
+                  Password
+                </label>
+                <Password
+                  inputId="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  className="login-input"
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  feedback={false}
+                  toggleMask={true}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="button-group">
+                <Button
+                  type="submit"
+                  label="Sign In"
+                  loading={loading}
+                  className="login-btn-primary"
+                  style={{ width: "100%", borderRadius: "8px" }}
+                />
+                <Button
+                  type="button"
+                  label="Register"
+                  onClick={() => navigate("/register/owner", { replace: true })}
+                  className="login-btn-secondary"
+                  style={{ width: "100%", borderRadius: "8px" }}
+                />
+              </div>
+
+              {/* Help Links */}
+              <div className="link-group">
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => navigate("/forgot-username")}
+                >
+                  <i
+                    className="pi pi-user"
+                    style={{ marginRight: "0.3rem" }}
+                  ></i>
+                  Forgot Username?
+                </button>
+                <span className="link-separator hidden sm:inline">•</span>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => navigate("/forgot-password")}
+                >
+                  <i
+                    className="pi pi-key"
+                    style={{ marginRight: "0.3rem" }}
+                  ></i>
+                  Forgot Password?
+                </button>
+              </div>
+            </form>
           </div>
-        </Card>
+        </div>
       </div>
     </>
   );

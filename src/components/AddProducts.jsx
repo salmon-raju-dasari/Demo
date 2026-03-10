@@ -1,6 +1,8 @@
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
+import { InputTextarea } from "primereact/inputtextarea";
 import { Dropdown } from "primereact/dropdown";
+import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Toast } from "primereact/toast";
 import { Dialog } from "primereact/dialog";
@@ -8,6 +10,7 @@ import { Checkbox } from "primereact/checkbox";
 import "../styles/add-product.css";
 import { Calendar } from "primereact/calendar";
 import { useLocation, useNavigate } from "react-router-dom";
+import { FileUpload } from "primereact/fileupload";
 
 // New imports for refactored features
 import LoadingSpinner from "./LoadingSpinner";
@@ -16,6 +19,7 @@ import PrintSlip from "./PrintSlip";
 import CategoryManagement from "./CategoryManagement";
 import UnitManagement from "./UnitManagement";
 import { fetchCategories } from "../services/api/categoryService";
+import { fetchBrands, deleteBrand } from "../services/api/brandService";
 import { fetchUnitsForDropdown } from "../services/api/unitService";
 import { useDependentDataLoader } from "../hooks/useDependentDataLoader";
 import api from "../services/api/axios";
@@ -24,6 +28,11 @@ import {
   updateProduct as updateProductAPI,
 } from "../services/api/productService";
 import { ProgressSpinner } from "primereact/progressspinner";
+import {
+  downloadProductTemplate,
+  readExcelFile,
+  downloadBulkUploadResults,
+} from "../utils/excelTemplateUtils";
 
 /**
  * AddProducts Component
@@ -50,7 +59,9 @@ export default function AddProducts() {
     description: "",
     price: "",
     openingStock: "",
+    stockAlertQuantity: "10",
     addQuantity: "",
+    removeQuantity: "",
     currentQuantity: 0,
     unitValue: "",
     skuSuffix: "",
@@ -59,7 +70,8 @@ export default function AddProducts() {
     expiryDate: "",
     mfgDate: "",
     barcode: "",
-    brand: "",
+    brand_id: null,
+    brand_name: "",
     supplierName: "",
     supplierContact: "",
     cgst: "",
@@ -67,6 +79,8 @@ export default function AddProducts() {
   });
 
   // UI state
+  const [brandDeleteLoading, setBrandDeleteLoading] = useState(false);
+
   const [productLabels, setProductLabels] = useState([]);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [productImages, setProductImages] = useState([]);
@@ -77,6 +91,12 @@ export default function AddProducts() {
   const [slipProduct, setSlipProduct] = useState(null);
   const [categoryDialogVisible, setCategoryDialogVisible] = useState(false);
   const [unitDialogVisible, setUnitDialogVisible] = useState(false);
+
+  // Bulk upload state
+  const [bulkUploadDialogVisible, setBulkUploadDialogVisible] = useState(false);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [bulkUploadFile, setBulkUploadFile] = useState(null);
+  const fileUploadRef = useRef(null);
 
   // Custom Labels state for product
   const [labelValueMappings, setLabelValueMappings] = useState({});
@@ -90,6 +110,10 @@ export default function AddProducts() {
   // Memoize dependencies to prevent infinite loops
   const dependencies = useMemo(
     () => [
+      {
+        key: "brands",
+        fetcher: () => fetchBrands(),
+      },
       {
         key: "categories",
         fetcher: () => fetchCategories(),
@@ -113,11 +137,20 @@ export default function AddProducts() {
     retryCount: 3,
   });
 
+  const brands = dependentData.brands || [];
   const categories = dependentData.categories || [];
   const units = dependentData.units || [];
 
   // Handle dependent data errors
   useEffect(() => {
+    if (error && error.key === "brands") {
+      toast.current?.show({
+        severity: "error",
+        summary: "Failed to Load Brands",
+        detail: "Could not fetch brands from server. Please refresh the page.",
+        life: 5000,
+      });
+    }
     if (error && error.key === "categories") {
       toast.current?.show({
         severity: "error",
@@ -142,6 +175,7 @@ export default function AddProducts() {
     if (
       isEditMode &&
       editProduct &&
+      brands.length > 0 &&
       categories.length > 0 &&
       units.length > 0
     ) {
@@ -164,7 +198,9 @@ export default function AddProducts() {
         description: editProduct.description || "",
         price: editProduct.price || "",
         openingStock: editProduct.quantity || "",
+        stockAlertQuantity: editProduct.stock_alert_quantity || "10",
         addQuantity: "",
+        removeQuantity: "",
         currentQuantity: editProduct.quantity || 0,
         unitValue: editProduct.unitvalue || "",
         skuSuffix: editProduct.sku || "",
@@ -175,7 +211,8 @@ export default function AddProducts() {
           : "",
         mfgDate: editProduct.mfgdate ? new Date(editProduct.mfgdate) : "",
         barcode: editProduct.barcode || "",
-        brand: editProduct.brand || "",
+        brand_id: editProduct.brand_id || null,
+        brand_name: editProduct.brand_name || "",
         supplierName: editProduct.suppliername || "",
         supplierContact: editProduct.suppliercontact || "",
         cgst: editProduct.gst || "",
@@ -209,7 +246,7 @@ export default function AddProducts() {
         setProductLabels(labels);
       }
     }
-  }, [isEditMode, editProduct, categories, units]);
+  }, [isEditMode, editProduct, brands, categories, units]);
 
   // Reset form when switching from edit to add mode
   useEffect(() => {
@@ -219,7 +256,9 @@ export default function AddProducts() {
         description: "",
         price: "",
         openingStock: "",
+        stockAlertQuantity: "10",
         addQuantity: "",
+        removeQuantity: "",
         currentQuantity: 0,
         unitValue: "",
         skuSuffix: "",
@@ -228,7 +267,8 @@ export default function AddProducts() {
         expiryDate: "",
         mfgDate: "",
         barcode: "",
-        brand: "",
+        brand_id: null,
+        brand_name: "",
         supplierName: "",
         supplierContact: "",
         cgst: "",
@@ -241,6 +281,68 @@ export default function AddProducts() {
     }
   }, [isEditMode, editProduct]);
 
+  // Delete brand handler
+  const handleDeleteBrand = (brand, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    confirmDialog({
+      message: `Are you sure you want to delete the brand "${brand.label}"? This will unlink it from all associated products.`,
+      header: "Delete Brand",
+      icon: "pi pi-exclamation-triangle",
+      acceptClassName: "p-button-danger",
+      acceptLabel: "Delete",
+      rejectLabel: "Cancel",
+      accept: async () => {
+        setBrandDeleteLoading(true);
+        try {
+          await deleteBrand(brand.value);
+          // Clear form if deleted brand was selected
+          if (productForm.brand_id === brand.value) {
+            setProductForm((prev) => ({
+              ...prev,
+              brand_id: null,
+              brand_name: "",
+            }));
+          }
+          // Refresh brands list
+          await refetch("brands");
+          toast.current?.show({
+            severity: "success",
+            summary: "Brand Deleted",
+            detail: `"${brand.label}" has been deleted successfully.`,
+            life: 3000,
+          });
+        } catch (err) {
+          toast.current?.show({
+            severity: "error",
+            summary: "Delete Failed",
+            detail: err.message || "Failed to delete brand.",
+            life: 4000,
+          });
+        } finally {
+          setBrandDeleteLoading(false);
+        }
+      },
+    });
+  };
+
+  // Custom brand option template with delete button
+  const brandOptionTemplate = (option) => (
+    <div className="flex items-center justify-between w-full">
+      <span>{option.label}</span>
+      <Button
+        icon="pi pi-trash"
+        rounded
+        text
+        size="small"
+        severity="danger"
+        className="w-6! h-6! ml-2 flex-shrink-0"
+        onClick={(e) => handleDeleteBrand(option, e)}
+        disabled={brandDeleteLoading}
+      />
+    </div>
+  );
+
   // Form field change handler
   const handleChange = (field, value) => {
     setProductForm((prev) => ({ ...prev, [field]: value }));
@@ -252,6 +354,14 @@ export default function AddProducts() {
       ...prev,
       addQuantity: "",
       currentQuantity: 0,
+    }));
+  };
+
+  // Clear remove quantity handler
+  const handleClearRemoveQuantity = () => {
+    setProductForm((prev) => ({
+      ...prev,
+      removeQuantity: "",
     }));
   };
 
@@ -291,6 +401,27 @@ export default function AddProducts() {
         life: 3000,
       });
       return;
+    }
+
+    // If the typed value is not already in the known options, persist it to DB
+    const existingOptions = getLabelValueOptions(label.name).map((o) =>
+      o.value.toLowerCase(),
+    );
+    const typedValue = label.value.trim();
+    if (typedValue && !existingOptions.includes(typedValue.toLowerCase())) {
+      // Optimistically update local state first so it shows immediately
+      setDbLabelValues((prev) => ({
+        ...prev,
+        [label.name]: [...(prev[label.name] || []), typedValue],
+      }));
+      // Persist to backend
+      api
+        .patch(
+          `/custom-labels/append-value?label_name=${encodeURIComponent(label.name)}&new_value=${encodeURIComponent(typedValue)}&label_type=product`,
+        )
+        .catch((err) =>
+          console.warn("Could not persist new label value to DB:", err),
+        );
     }
 
     setProductLabels((prev) =>
@@ -498,6 +629,8 @@ export default function AddProducts() {
         setPrimaryImageIndex(newImages.length - 1);
       } else if (newImages.length === 0) {
         setPrimaryImageIndex(0);
+        // Close the gallery dialog when all images are removed
+        setGalleriaVisible(false);
       }
       return newImages;
     });
@@ -592,20 +725,73 @@ export default function AddProducts() {
       return;
     }
 
-    // Validate opening stock or add quantity
-    const stockValue = isEditMode
-      ? productForm.addQuantity
-      : productForm.openingStock;
-    if (!stockValue || parseInt(stockValue) <= 0) {
+    // Validate stock alert quantity (required)
+    if (
+      !productForm.stockAlertQuantity ||
+      parseFloat(productForm.stockAlertQuantity) <= 0
+    ) {
       toast.current?.show({
         severity: "warn",
         summary: "Validation Error",
-        detail: isEditMode
-          ? "Quantity to add must be greater than 0"
-          : "Opening stock must be greater than 0",
+        detail: "Stock Alert Quantity is required and must be greater than 0",
         life: 3000,
       });
       return;
+    }
+
+    // Validate opening stock or add/remove quantity
+    if (isEditMode) {
+      // For edit mode: Add to Stock is optional, but if provided must be > 0
+      if (productForm.addQuantity && parseInt(productForm.addQuantity) <= 0) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "Validation Error",
+          detail: "Quantity to add must be greater than 0",
+          life: 3000,
+        });
+        return;
+      }
+      // For edit mode: Remove from Stock is optional, but if provided must be > 0
+      if (
+        productForm.removeQuantity &&
+        parseInt(productForm.removeQuantity) <= 0
+      ) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "Validation Error",
+          detail: "Quantity to remove must be greater than 0",
+          life: 3000,
+        });
+        return;
+      }
+      // Check if removal would result in negative stock
+      const finalQty =
+        productForm.currentQuantity +
+        (parseInt(productForm.addQuantity) || 0) -
+        (parseInt(productForm.removeQuantity) || 0);
+      if (finalQty < 0) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "Validation Error",
+          detail: `Cannot remove more than available stock. Current: ${productForm.currentQuantity}, After changes: ${finalQty}`,
+          life: 4000,
+        });
+        return;
+      }
+    } else {
+      // For add mode: Opening Stock is required and must be > 0
+      if (
+        !productForm.openingStock ||
+        parseInt(productForm.openingStock) <= 0
+      ) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "Validation Error",
+          detail: "Opening stock must be greater than 0",
+          life: 3000,
+        });
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -629,7 +815,14 @@ export default function AddProducts() {
         barcode: productForm.barcode.trim(),
         sku: productForm.skuSuffix?.trim() || null,
         description: productForm.description?.trim() || null,
-        brand: productForm.brand?.trim() || null,
+        // If a known brand was selected from the list, send brand_id only.
+        // If a new name was typed (no brand_id), send brand_name only so the
+        // backend creates a new brand entry. If neither, send both as null.
+        brand_id: productForm.brand_id || null,
+        brand_name:
+          !productForm.brand_id && productForm.brand_name?.trim()
+            ? productForm.brand_name.trim()
+            : null,
         category: categoryName, // Use looked-up category name
         price: parseFloat(productForm.price),
         unitvalue: productForm.unitValue
@@ -640,10 +833,14 @@ export default function AddProducts() {
         gst: productForm.cgst ? parseInt(productForm.cgst) : 0,
         openingstock: isEditMode
           ? productForm.currentQuantity +
-            (parseInt(productForm.addQuantity) || 0)
+            (parseInt(productForm.addQuantity) || 0) -
+            (parseInt(productForm.removeQuantity) || 0)
           : productForm.openingStock
             ? parseInt(productForm.openingStock)
             : 0,
+        stock_alert_quantity: productForm.stockAlertQuantity
+          ? parseFloat(productForm.stockAlertQuantity)
+          : 10,
         mfgdate: productForm.mfgDate
           ? productForm.mfgDate.toISOString().split("T")[0]
           : null,
@@ -670,7 +867,10 @@ export default function AddProducts() {
         result = await addProductsAPI([productData]);
       }
 
-      if (result.success) {
+      console.log("API Response:", result);
+
+      // Check for success and ensure error status is handled properly
+      if (result && result.success === true) {
         toast.current?.show({
           severity: "success",
           summary: "Success",
@@ -684,7 +884,7 @@ export default function AddProducts() {
         setTimeout(() => {
           navigate("/products");
         }, 1500);
-      } else {
+      } else if (result && result.success === false) {
         // Extract detailed error message from backend response
         let errorMessage = "Failed to add product";
 
@@ -694,16 +894,38 @@ export default function AddProducts() {
         );
 
         if (result.error?.detail) {
-          // Backend sends structured error
-          if (typeof result.error.detail === "string") {
+          // Check for validation_errors (field-specific errors)
+          if (
+            result.error.detail.validation_errors &&
+            Array.isArray(result.error.detail.validation_errors)
+          ) {
+            const validationErrors = result.error.detail.validation_errors;
+            errorMessage = validationErrors
+              .map((err) => `${err.field}: ${err.error}`)
+              .join("\n");
+          } else if (typeof result.error.detail === "string") {
             errorMessage = result.error.detail;
           } else if (result.error.detail.message) {
             errorMessage = result.error.detail.message;
           } else if (Array.isArray(result.error.detail)) {
-            // Pydantic validation errors
+            // Pydantic validation errors - extract field name and create detailed message
             errorMessage = result.error.detail
-              .map((err) => `${err.loc?.join(" -> ") || "Field"}: ${err.msg}`)
-              .join(", ");
+              .map((err) => {
+                const fieldName = err.loc?.[err.loc.length - 1] || "Field";
+                const baseMsg = `${fieldName}: ${err.msg}`;
+
+                // Add context details
+                if (err.ctx) {
+                  if (err.ctx.max_length) {
+                    return `${baseMsg} (max ${err.ctx.max_length} characters)`;
+                  }
+                  if (err.ctx.min_length) {
+                    return `${baseMsg} (min ${err.ctx.min_length} characters)`;
+                  }
+                }
+                return baseMsg;
+              })
+              .join("\n");
           } else {
             // Object format error
             errorMessage = JSON.stringify(result.error.detail);
@@ -721,6 +943,14 @@ export default function AddProducts() {
           detail: errorMessage,
           life: 5000,
         });
+      } else {
+        // Unexpected response format
+        toast.current?.show({
+          severity: "error",
+          summary: "Error",
+          detail: "Unexpected response from server. Please try again.",
+          life: 5000,
+        });
       }
     } catch (error) {
       console.error(
@@ -730,19 +960,66 @@ export default function AddProducts() {
 
       // Try to extract meaningful error message
       let errorDetail = "An unexpected error occurred. Please try again.";
+      let errorCode = "";
+
+      // Get error code if available
+      if (error.response?.status) {
+        errorCode = `(${error.response.status})`;
+      }
+
       if (error.response?.data?.detail) {
-        if (typeof error.response.data.detail === "string") {
+        // Check for validation_errors first (field-specific errors)
+        if (
+          error.response.data.detail.validation_errors &&
+          Array.isArray(error.response.data.detail.validation_errors)
+        ) {
+          const validationErrors = error.response.data.detail.validation_errors;
+          errorDetail = validationErrors
+            .map((err) => `${err.field}: ${err.error}`)
+            .join("\n");
+        } else if (Array.isArray(error.response.data.detail)) {
+          // Pydantic validation errors array
+          errorDetail = error.response.data.detail
+            .map((err) => {
+              const fieldName = err.loc?.[err.loc.length - 1] || "Field";
+              const baseMsg = `${fieldName}: ${err.msg}`;
+
+              // Add context details
+              if (err.ctx) {
+                if (err.ctx.max_length) {
+                  return `${baseMsg} (max ${err.ctx.max_length} characters)`;
+                }
+                if (err.ctx.min_length) {
+                  return `${baseMsg} (min ${err.ctx.min_length} characters)`;
+                }
+              }
+              return baseMsg;
+            })
+            .join("\n");
+        } else if (typeof error.response.data.detail === "string") {
           errorDetail = error.response.data.detail;
         } else if (error.response.data.detail.message) {
           errorDetail = error.response.data.detail.message;
+        } else if (error.response.data.detail.error) {
+          errorDetail = error.response.data.detail.error;
         }
+      } else if (error.response?.data?.message) {
+        errorDetail = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorDetail = error.response.data.error;
       } else if (error.message) {
         errorDetail = error.message;
       }
 
+      console.error("Full error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+
       toast.current?.show({
         severity: "error",
-        summary: "Error",
+        summary: `Error ${errorCode}`,
         detail: errorDetail,
         life: 5000,
       });
@@ -751,9 +1028,169 @@ export default function AddProducts() {
     }
   };
 
+  // Bulk Upload Handlers
+  const handleDownloadTemplate = () => {
+    try {
+      downloadProductTemplate();
+      toast.current?.show({
+        severity: "success",
+        summary: "Template Downloaded",
+        detail:
+          "Excel template downloaded successfully. Fill it with your product data.",
+        life: 3000,
+      });
+    } catch (err) {
+      console.error("Error downloading template:", err);
+      toast.current?.show({
+        severity: "error",
+        summary: "Download Failed",
+        detail: "Failed to download template. Please try again.",
+        life: 3000,
+      });
+    }
+  };
+
+  const handleBulkUploadSelect = (event) => {
+    const file = event.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+      ];
+
+      if (
+        !allowedTypes.includes(file.type) &&
+        !file.name.endsWith(".xlsx") &&
+        !file.name.endsWith(".xls")
+      ) {
+        toast.current?.show({
+          severity: "error",
+          summary: "Invalid File",
+          detail: "Please upload an Excel file (.xlsx or .xls)",
+          life: 3000,
+        });
+        fileUploadRef.current?.clear();
+        return;
+      }
+
+      setBulkUploadFile(file);
+    }
+  };
+
+  const handleBulkUploadSubmit = async () => {
+    if (!bulkUploadFile) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "No File Selected",
+        detail: "Please select an Excel file to upload",
+        life: 3000,
+      });
+      return;
+    }
+
+    setIsBulkUploading(true);
+
+    try {
+      // Read Excel file
+      const products = await readExcelFile(bulkUploadFile);
+
+      if (!products || products.length === 0) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "No Data Found",
+          detail: "The Excel file contains no product data",
+          life: 3000,
+        });
+        setIsBulkUploading(false);
+        return;
+      }
+
+      console.log("Read products from Excel:", products);
+
+      // Send to backend for bulk processing
+      const response = await api.post("/products/bulkUpload", { products });
+
+      console.log("Bulk upload response:", response);
+
+      const {
+        success_count,
+        failure_count,
+        successful_products,
+        failed_products,
+      } = response.data;
+
+      // Show summary toast
+      if (success_count > 0 && failure_count === 0) {
+        toast.current?.show({
+          severity: "success",
+          summary: "Upload Successful",
+          detail: `All ${success_count} products uploaded successfully!`,
+          life: 5000,
+        });
+      } else if (success_count > 0 && failure_count > 0) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "Partial Success",
+          detail: `${success_count} products uploaded, ${failure_count} failed. Check downloaded files for details.`,
+          life: 5000,
+        });
+      } else {
+        toast.current?.show({
+          severity: "error",
+          summary: "Upload Failed",
+          detail: `All ${failure_count} products failed validation. Check downloaded file for details.`,
+          life: 5000,
+        });
+      }
+
+      // Download result files
+      downloadBulkUploadResults(successful_products, failed_products);
+
+      // Clear upload
+      setBulkUploadFile(null);
+      fileUploadRef.current?.clear();
+      setBulkUploadDialogVisible(false);
+
+      // Refresh products list if in products view
+      if (success_count > 0) {
+        toast.current?.show({
+          severity: "info",
+          summary: "Tip",
+          detail: "Navigate to Products page to see newly added products",
+          life: 3000,
+        });
+      }
+    } catch (error) {
+      console.error("Bulk upload error:", error);
+
+      let errorMessage = "Failed to upload products. Please try again.";
+
+      if (error.response?.data?.detail) {
+        if (typeof error.response.data.detail === "string") {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.detail.message) {
+          errorMessage = error.response.data.detail.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.current?.show({
+        severity: "error",
+        summary: "Upload Failed",
+        detail: errorMessage,
+        life: 5000,
+      });
+    } finally {
+      setIsBulkUploading(false);
+    }
+  };
+
   return (
     <>
       <Toast ref={toast} position="top-right" appendTo={document.body} />
+      <ConfirmDialog appendTo={document.body} />
 
       {/* QR Code Scanner Modal */}
       <QRCodeScanner
@@ -763,7 +1200,119 @@ export default function AddProducts() {
         dialogHeader="Scan Product Barcode/QR Code"
       />
 
+      {/* Bulk Upload Dialog */}
+      <Dialog
+        header="Bulk Upload Products from Excel"
+        visible={bulkUploadDialogVisible}
+        style={{ width: "90vw", maxWidth: "600px" }}
+        onHide={() => {
+          setBulkUploadDialogVisible(false);
+          setBulkUploadFile(null);
+          fileUploadRef.current?.clear();
+        }}
+        modal
+      >
+        <div className="flex flex-col gap-4 p-4">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-gray-600">
+              Download the Excel template, fill it with your product data, and
+              upload it here. The system will validate all products and save the
+              valid ones to the database.
+            </p>
+            <p className="text-sm text-gray-600 font-semibold">
+              After upload, you'll receive two Excel files:
+            </p>
+            <ul className="text-sm text-gray-600 list-disc ml-5">
+              <li>
+                <strong>Success File:</strong> Products successfully uploaded
+                with their IDs
+              </li>
+              <li>
+                <strong>Failure File:</strong> Products that failed validation
+                with error details
+              </li>
+            </ul>
+          </div>
+
+          <Button
+            label="Download Template"
+            icon="pi pi-download"
+            onClick={handleDownloadTemplate}
+            className="w-full"
+            severity="help"
+          />
+
+          <div className="border-t pt-4">
+            <label className="block text-sm font-semibold mb-2">
+              Upload Filled Template
+            </label>
+            <FileUpload
+              ref={fileUploadRef}
+              mode="basic"
+              name="bulkUpload"
+              accept=".xlsx,.xls"
+              maxFileSize={5000000}
+              onSelect={handleBulkUploadSelect}
+              chooseLabel="Choose Excel File"
+              className="w-full"
+              auto={false}
+            />
+            {bulkUploadFile && (
+              <p className="text-sm text-green-600 mt-2">
+                Selected: {bulkUploadFile.name}
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button
+              label="Cancel"
+              icon="pi pi-times"
+              onClick={() => {
+                setBulkUploadDialogVisible(false);
+                setBulkUploadFile(null);
+                fileUploadRef.current?.clear();
+              }}
+              className="p-button-text"
+              disabled={isBulkUploading}
+            />
+            <Button
+              label={isBulkUploading ? "Uploading..." : "Upload Products"}
+              icon={isBulkUploading ? "pi pi-spin pi-spinner" : "pi pi-upload"}
+              onClick={handleBulkUploadSubmit}
+              disabled={!bulkUploadFile || isBulkUploading}
+              severity="success"
+            />
+          </div>
+        </div>
+      </Dialog>
+
       {/* Add Category Dialog removed - now in separate CategoryManagement screen */}
+
+      {/* Bulk Upload Section - Top of Page */}
+      {!isEditMode && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4 border border-blue-200">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-blue-900 mb-1">
+                <i className="pi pi-file-excel mr-2"></i>
+                Bulk Upload Products
+              </h3>
+              <p className="text-sm text-gray-600">
+                Upload multiple products at once using an Excel file. Download
+                the template, fill it, and upload to save time.
+              </p>
+            </div>
+            <Button
+              label="Bulk Upload"
+              icon="pi pi-cloud-upload"
+              onClick={() => setBulkUploadDialogVisible(true)}
+              severity="info"
+              className="whitespace-nowrap"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Main Product Form */}
       <div className="flex flex-col gap-3 w-full">
@@ -955,8 +1504,9 @@ export default function AddProducts() {
               className="p-inputtext-sm w-full p-[5px]!"
               value={productForm.barcode}
               keyfilter="int"
+              maxLength="13"
               onChange={(e) => handleChange("barcode", e.target.value)}
-              placeholder="Scan, generate, or enter barcode (required)"
+              placeholder="Scan, generate, or enter barcode (required) - EAN-13 (13 digits)"
             />
           </div>
           <div className="flex items-center w-full justify-between mt-3">
@@ -966,7 +1516,9 @@ export default function AddProducts() {
             <InputText
               className="p-inputtext-sm w-full p-[5px]!"
               value={productForm.skuSuffix}
-              onChange={(e) => handleChange("skuSuffix", e.target.value)}
+              onChange={(e) =>
+                handleChange("skuSuffix", e.target.value.toUpperCase())
+              }
               placeholder="Stock Keeping Unit (required)"
             />
           </div>
@@ -985,15 +1537,17 @@ export default function AddProducts() {
           />
         </div>
 
-        <div className="flex items-center w-full justify-between">
-          <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
+        <div className="flex items-start w-full justify-between">
+          <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold mt-2">
             Description
           </label>
-          <InputText
+          <InputTextarea
             className="p-inputtext-sm w-full p-[5px]!"
             value={productForm.description}
             onChange={(e) => handleChange("description", e.target.value)}
-            placeholder="Product description"
+            placeholder="Product description (optional - up to 500 characters)"
+            rows={4}
+            maxLength="500"
           />
         </div>
 
@@ -1001,11 +1555,31 @@ export default function AddProducts() {
           <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
             Brand
           </label>
-          <InputText
-            className="p-inputtext-sm w-full p-[5px]!"
-            value={productForm.brand}
-            onChange={(e) => handleChange("brand", e.target.value)}
-            placeholder="Product brand"
+          <Dropdown
+            className="w-full"
+            value={productForm.brand_id || productForm.brand_name}
+            options={brands}
+            onChange={(e) => {
+              const selected = brands.find((b) => b.value === e.value);
+              if (selected) {
+                setProductForm({
+                  ...productForm,
+                  brand_id: selected.value,
+                  brand_name: selected.label,
+                });
+              } else {
+                setProductForm({
+                  ...productForm,
+                  brand_id: null,
+                  brand_name: e.value || "",
+                });
+              }
+            }}
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Search or type brand name"
+            editable
+            itemTemplate={brandOptionTemplate}
           />
         </div>
 
@@ -1154,7 +1728,8 @@ export default function AddProducts() {
               className="p-inputtext-sm p-[5px]! bg-gray-100"
               value={
                 productForm.currentQuantity +
-                (parseInt(productForm.addQuantity) || 0)
+                (parseInt(productForm.addQuantity) || 0) -
+                (parseInt(productForm.removeQuantity) || 0)
               }
               readOnly
               disabled
@@ -1173,8 +1748,14 @@ export default function AddProducts() {
 
       <div className="flex items-center w-full justify-between mt-3">
         <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
-          {isEditMode ? "Add to Stock" : "Opening Stock"}{" "}
-          <span className="text-red-500">*</span>
+          {isEditMode ? (
+            <span style={{ color: "#16a34a" }}>Add to Stock</span>
+          ) : (
+            <>
+              Opening Stock
+              <span className="text-red-500">*</span>
+            </>
+          )}
         </label>
         <InputText
           className="p-inputtext-sm w-full p-[5px]!"
@@ -1187,9 +1768,42 @@ export default function AddProducts() {
           }}
           placeholder={
             isEditMode
-              ? "Enter quantity to add (must be > 0)"
-              : "Enter opening stock (must be > 0)"
+              ? "Enter quantity to add (optional, must be > 0 if provided)"
+              : "Enter opening stock (required, must be > 0)"
           }
+        />
+      </div>
+
+      {isEditMode && (
+        <div className="flex items-center w-full justify-between mt-3">
+          <label
+            className="label-add-product text-[0.8rem] min-w-[120px] font-bold"
+            style={{ color: "#dc2626" }}
+          >
+            Remove to Stock
+          </label>
+          <InputText
+            className="p-inputtext-sm w-full p-[5px]!"
+            value={productForm.removeQuantity}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^0-9]/g, "");
+              handleChange("removeQuantity", value);
+            }}
+            placeholder="Enter quantity to remove (optional, must be > 0 if provided)"
+          />
+        </div>
+      )}
+
+      <div className="flex items-center w-full justify-between mt-3">
+        <label className="label-add-product text-[0.8rem] min-w-[120px] font-bold">
+          Stock Alert Quantity<span className="text-red-500">*</span>
+        </label>
+        <InputText
+          className="p-inputtext-sm w-full p-[5px]!"
+          keyfilter="num"
+          value={productForm.stockAlertQuantity}
+          onChange={(e) => handleChange("stockAlertQuantity", e.target.value)}
+          placeholder="Default: 10 (alert when quantity reaches this level)"
         />
       </div>
 
@@ -1301,9 +1915,9 @@ export default function AddProducts() {
                       onChange={(e) =>
                         updateProductLabel(label.id, "value", e.value)
                       }
-                      placeholder="Select label value"
+                      placeholder="Select or type a value"
                       className="w-full!"
-                      filter
+                      editable
                       optionLabel="label"
                       optionValue="value"
                     />

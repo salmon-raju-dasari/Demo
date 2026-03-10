@@ -1,0 +1,222 @@
+/* AssignmentModal Styles */
+
+.assignment-modal :global(.p-dialog) {
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.assignment-modal :global(.p-dialog-header) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px 8px 0 0;
+    padding: 12px 16px;
+}
+
+.assignment-modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+}
+
+/* Selected Product Section */
+.selected-product-section {
+    background: #f0f4ff;
+    padding: 12px;
+    border-left: 4px solid #667eea;
+    border-radius: 6px;
+}
+
+.selected-product-section h4 {
+    margin: 0 0 12px 0;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.selected-product-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.product-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+}
+
+.product-detail-row .label {
+    color: #666;
+    font-weight: 500;
+    min-width: 150px;
+}
+
+.product-detail-row .value {
+    color: #333;
+    font-weight: 600;
+    flex: 1;
+}
+
+.product-detail-row .value.highlight {
+    color: #667eea;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* Assignment Section */
+.assignment-section {
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.assignment-section h3 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #333;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.form-group :global(.p-dropdown),
+.form-group :global(.p-inputnumber) {
+    width: 100%;
+}
+
+/* .store-dropdown :global(.p-dropdown-trigger) {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+} */
+
+/* .store-dropdown :global(.p-dropdown-trigger:hover) {
+    background: #764ba2;
+    border-color: #764ba2;
+} */
+
+.store-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.store-location {
+    color: #999;
+}
+
+/* Existing Assignments Section */
+.existing-assignments-section {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.existing-assignments-section :global(.p-button-text) {
+    padding: 8px 0;
+    margin-bottom: 12px;
+    color: #667eea;
+    font-weight: 600;
+}
+
+.existing-assignments-section :global(.p-button-text:hover) {
+    color: #764ba2;
+}
+
+.assignments-table {
+    margin-top: 12px;
+}
+
+.assignments-table :global(.p-datatable) {
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+}
+
+.assignments-table :global(.p-datatable .p-datatable-thead > tr > th) {
+    background: #f0f4ff;
+    color: #333;
+    font-weight: 600;
+    border-color: #e9ecef;
+}
+
+.assignments-table :global(.p-datatable .p-datatable-tbody > tr > td) {
+    padding: 12px;
+    border-color: #f0f4ff;
+    font-size: 13px;
+}
+
+.font-bold {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Messages */
+.assignment-modal :global(.p-message) {
+    border-radius: 6px;
+    margin: 0;
+    padding: 12px 16px;
+}
+
+.assignment-modal :global(.p-message.p-message-error) {
+    background: #fee5e5;
+    border: 1px solid #fcccc8;
+}
+
+.assignment-modal :global(.p-message.p-message-success) {
+    background: #e3f2fd;
+    border: 1px solid #b3e5fc;
+}
+
+/* Modal Actions */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
+}
+
+.modal-actions :global(.p-button) {
+    min-width: 120px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .assignment-modal :global(.p-dialog) {
+        width: 95vw !important;
+    }
+
+    .product-detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .modal-actions :global(.p-button) {
+        width: 100%;
+    }
+}

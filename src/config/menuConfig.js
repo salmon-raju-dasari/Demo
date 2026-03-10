@@ -89,24 +89,8 @@ export const menuItems = [
     ],
   },
   {
-    label: "Reports",
-    icon: "pi pi-chart-bar",
-    items: [
-      {
-        label: "Sales Report",
-        icon: "pi pi-chart-line",
-        to: "/reports/sales",
-      },
-      {
-        label: "Inventory Report",
-        icon: "pi pi-chart-pie",
-        to: "/reports/inventory",
-      },
-    ],
-  },
-  {
-    label: "Settings",
-    icon: "pi pi-cog",
-    to: "/settings",
+    label: "Roles",
+    icon: "pi pi-shield",
+    to: "/roles",
   },
 ];

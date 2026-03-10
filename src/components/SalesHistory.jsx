@@ -17,16 +17,53 @@ const SalesHistory = () => {
   });
   const [selectedSale, setSelectedSale] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [stores, setStores] = useState([]);
+  const [storesLoading, setStoresLoading] = useState(false);
   const [filters, setFilters] = useState({
     paymentStatus: "",
     startDate: null,
     endDate: null,
+    store: null,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [summaryTotals, setSummaryTotals] = useState({
+    count: 0,
+    totalAmount: 0,
+    totalPaid: 0,
+    totalDue: 0,
   });
 
   useEffect(() => {
+    fetchStores();
+    fetchSummaryTotals();
     fetchSales();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-fetch sales and totals when filters change
+  useEffect(() => {
+    if (
+      filters.store ||
+      filters.paymentStatus ||
+      filters.startDate ||
+      filters.endDate
+    ) {
+      // Only refetch when a filter is actively set
+      const timer = setTimeout(() => {
+        setCurrentPage(1); // Reset to page 1 when filters change
+        fetchSummaryTotals();
+        fetchSales();
+      }, 300); // Debounce to avoid rapid API calls
+      return () => clearTimeout(timer);
+    }
+  }, [
+    filters.store,
+    filters.paymentStatus,
+    filters.startDate,
+    filters.endDate,
+  ]);
 
   const showNotification = (message, type = "success") => {
     setNotification({ show: true, message, type });
@@ -36,11 +73,30 @@ const SalesHistory = () => {
     );
   };
 
+  const fetchStores = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await axios.get(`${API_BASE_URL}/stores/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Handle both array and object responses
+      const storesList = response.data?.items || response.data || [];
+      setStores(Array.isArray(storesList) ? storesList : []);
+    } catch (error) {
+      console.error("Error fetching stores:", error);
+      setStores([]);
+    }
+  };
+
   const fetchSales = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("access_token");
       const params = new URLSearchParams();
+
+      // Add pagination parameters
+      params.append("skip", (currentPage - 1) * pageSize);
+      params.append("limit", pageSize);
 
       if (filters.paymentStatus) {
         params.append("payment_status", filters.paymentStatus);
@@ -53,13 +109,21 @@ const SalesHistory = () => {
         const endDateStr = filters.endDate.toISOString().split("T")[0];
         params.append("end_date", endDateStr);
       }
+      if (filters.store) {
+        params.append("store_id", filters.store.id);
+      }
 
       const response = await axios.get(
         `${API_BASE_URL}/sales/?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      setSales(response.data);
+      // Handle both array and object responses
+      const salesData = Array.isArray(response.data)
+        ? response.data
+        : response.data?.items || [];
+      setSales(salesData);
+      // totalRecords is already set by fetchSummaryTotals, don't recalculate it here
     } catch (error) {
       showNotification(
         error.response?.data?.detail || "Failed to fetch sales",
@@ -84,18 +148,109 @@ const SalesHistory = () => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  const fetchSummaryTotals = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const params = new URLSearchParams();
+
+      // Fetch all matching records without pagination to calculate totals
+      params.append("skip", 0);
+      params.append("limit", 999999);
+
+      if (filters.paymentStatus) {
+        params.append("payment_status", filters.paymentStatus);
+      }
+      if (filters.startDate) {
+        const startDateStr = filters.startDate.toISOString().split("T")[0];
+        params.append("start_date", startDateStr);
+      }
+      if (filters.endDate) {
+        const endDateStr = filters.endDate.toISOString().split("T")[0];
+        params.append("end_date", endDateStr);
+      }
+      if (filters.store) {
+        params.append("store_id", filters.store.id);
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/sales/?${params.toString()}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      const allSalesData = Array.isArray(response.data)
+        ? response.data
+        : response.data?.items || [];
+
+      // Calculate totals from all matching records
+      const totals = {
+        count: allSalesData.length,
+        totalAmount: allSalesData.reduce(
+          (sum, sale) => sum + parseFloat(sale.total_amount || 0),
+          0,
+        ),
+        totalPaid: allSalesData.reduce(
+          (sum, sale) => sum + parseFloat(sale.amount_paid || 0),
+          0,
+        ),
+        totalDue: allSalesData.reduce(
+          (sum, sale) => sum + parseFloat(sale.amount_due || 0),
+          0,
+        ),
+      };
+
+      setSummaryTotals(totals);
+      setTotalRecords(totals.count); // Update pagination total to match filtered count
+    } catch (error) {
+      console.error("Error fetching summary totals:", error);
+    }
+  };
+
   const handleApplyFilters = () => {
+    setCurrentPage(1); // Reset to first page when filtering
+    fetchSummaryTotals(); // Fetch totals for all matching records
     fetchSales();
   };
 
   const handleClearFilters = () => {
+    setCurrentPage(1);
     setFilters({
       paymentStatus: "",
       startDate: null,
       endDate: null,
+      store: null,
     });
-    setTimeout(fetchSales, 100);
+    setTimeout(() => {
+      fetchSummaryTotals();
+      fetchSales();
+    }, 100);
   };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const calculateTotalPages = () => {
+    return Math.ceil(totalRecords / pageSize);
+  };
+
+  const getPageNumbers = () => {
+    const totalPages = calculateTotalPages();
+    const maxVisible = 3;
+    let start = Math.max(1, currentPage - 1);
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  };
+
+  // Re-fetch when page changes
+  useEffect(() => {
+    fetchSales();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   const getPaymentStatusClass = (status) => {
     switch (status) {
@@ -145,6 +300,21 @@ const SalesHistory = () => {
 
       <div className="filters-section">
         <div className="filter-group">
+          <label>Store</label>
+          <Dropdown
+            value={filters.store}
+            onChange={(e) => handleFilterChange("store", e.value)}
+            options={Array.isArray(stores) ? stores : []}
+            optionLabel="store_name"
+            placeholder="Select Store"
+            loading={storesLoading}
+            filter
+            filterBy="store_name"
+            showFilterClear
+          />
+        </div>
+
+        <div className="filter-group">
           <label>Payment Status</label>
           <Dropdown
             value={filters.paymentStatus}
@@ -189,36 +359,24 @@ const SalesHistory = () => {
       <div className="sales-summary">
         <div className="summary-card">
           <span className="summary-label">Total Sales</span>
-          <span className="summary-value">{sales.length}</span>
+          <span className="summary-value">{summaryTotals.count}</span>
         </div>
         <div className="summary-card">
           <span className="summary-label">Total Amount</span>
           <span className="summary-value">
-            ₹
-            {sales
-              .reduce(
-                (sum, sale) => sum + parseFloat(sale.total_amount || 0),
-                0,
-              )
-              .toFixed(2)}
+            ₹{summaryTotals.totalAmount.toFixed(2)}
           </span>
         </div>
         <div className="summary-card">
           <span className="summary-label">Amount Paid</span>
           <span className="summary-value">
-            ₹
-            {sales
-              .reduce((sum, sale) => sum + parseFloat(sale.amount_paid || 0), 0)
-              .toFixed(2)}
+            ₹{summaryTotals.totalPaid.toFixed(2)}
           </span>
         </div>
         <div className="summary-card">
           <span className="summary-label">Amount Due</span>
           <span className="summary-value">
-            ₹
-            {sales
-              .reduce((sum, sale) => sum + parseFloat(sale.amount_due || 0), 0)
-              .toFixed(2)}
+            ₹{summaryTotals.totalDue.toFixed(2)}
           </span>
         </div>
       </div>
@@ -297,6 +455,61 @@ const SalesHistory = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="pagination-section">
+        <div className="pagination-controls">
+          <button
+            className="pagination-btn"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            ← Previous
+          </button>
+
+          <div className="page-numbers">
+            {getPageNumbers().map((page) => (
+              <button
+                key={page}
+                className={`page-number ${currentPage === page ? "active" : ""}`}
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          <button
+            className="pagination-btn"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage >= calculateTotalPages()}
+          >
+            Next →
+          </button>
+
+          <div className="page-size-selector">
+            <label>Records per page:</label>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="page-size-dropdown"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+
+          <div className="pagination-info">
+            Page {currentPage} of {calculateTotalPages()} (Total: {totalRecords}
+            )
+          </div>
+        </div>
       </div>
 
       {/* Sale Details Modal */}
